@@ -1,6 +1,6 @@
 # schedulingAlgorithm
 
-CONDA
+# CONDA
 Install Anaconda: https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html
 
     > Set up virtual environment with mysql.connector package: conda create --name myenv
@@ -19,7 +19,7 @@ Install Anaconda: https://docs.conda.io/projects/conda/en/latest/user-guide/inst
 
 
 
-MYSQL 
+# MYSQL 
 Install MySQL with Homebrew: https://gist.github.com/operatino/392614486ce4421063b9dece4dfe6c21
 
 Set up mysql (if not installed/configured):
@@ -39,7 +39,7 @@ Set up mysql (if not installed/configured):
   
   
   
-MYSQL EXPORTATION COMMANDS (to be added into program later, but for now run through mysql server locally):
+# MYSQL EXPORTATION COMMANDS (to be added into program later, but for now run through mysql server locally):
  - File with headers:
     
         mysql> SELECT 'Name', 'Gender', 'Class Name', 'Section #' UNION ALL SELECT name, gender, class_name, section_number 
