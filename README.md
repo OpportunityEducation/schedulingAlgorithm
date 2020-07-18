@@ -18,6 +18,7 @@ Install Anaconda: https://docs.conda.io/projects/conda/en/latest/user-guide/inst
 
 
 
+
 MYSQL 
 Install MySQL with Homebrew: https://gist.github.com/operatino/392614486ce4421063b9dece4dfe6c21
 
@@ -27,9 +28,9 @@ Set up mysql (if not installed/configured):
   
   - configure either new user with privileges: [in which case host = localhost]
   
-      > mysql> GRANT ALL PRIVILEGES ON schedule_db TO 'username'@'host'
+        mysql> GRANT ALL PRIVILEGES ON schedule_db TO 'username'@'host'
       
-      > mysql> GRANT FILE ON *.* TO 'username'@'host'
+        mysql> GRANT FILE ON *.* TO 'username'@'host'
       
     OR use root
     
@@ -37,28 +38,30 @@ Set up mysql (if not installed/configured):
   
   
   
+  
 MYSQL EXPORTATION COMMANDS (to be added into program later, but for now run through mysql server locally):
  - File with headers:
-    mysql> SELECT 'Name', 'Gender', 'Class Name', 'Section #' UNION ALL SELECT name, gender, class_name, section_number 
-    FROM formatted_output INTO OUTFILE 'file_name.csv' 
-    FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n';
+    
+        mysql> SELECT 'Name', 'Gender', 'Class Name', 'Section #' UNION ALL SELECT name, gender, class_name, section_number 
+        FROM formatted_output INTO OUTFILE 'file_name.csv' 
+        FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\n';
     
  - This outputs into the schedule_db directory (probably /usr/local/var/mysql/schedule_db) ; 
        - If you can't find where it exports run, in -u root
         
-        > mysql> SHOW VARIABLES LIKE “secure_file_priv”;
+        mysql> SHOW VARIABLES LIKE “secure_file_priv”;
         
  - IF GETTING --secure-file-priv then you need to change your security permissions:
         - You need to edit your .my.cnf file to disable specific file locations. This can be found in numerous place (see sample config file)
         but if it doesn't exist you can create in root, which is the prioritized location of mysql permissions:
         
-        > $ cd
-        > $ sudo vim/my.cnf
-        - --> under [mysqld] set secure-file-priv to either location of choice or ""
+        $ cd
+        $ sudo vim/my.cnf
+        --> under [mysqld] set secure-file-priv to either location of choice or ""
         
         
-        > mysql> RESTART 
-        > mysql> SHOW VARIABLES LIKE "secure_file_priv" 
+        mysql> RESTART 
+        mysql> SHOW VARIABLES LIKE "secure_file_priv" 
         
         It should pop up as: (value empty if "", else shows location)
         +------------------+-------+
