@@ -2,17 +2,20 @@
 
 # CONDA
 Install Anaconda: https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html
-
-    > Set up virtual environment with mysql.connector package: conda create --name myenv
-  
-    > Proceed? y
     
-    > Activate environment: conda activate
+   Set up virtual environment with mysql.connector package: 
+         
+         conda create --name myenv
+         Proceed? y
+         conda activate
   
-    > Install mysql.connector (can do broadly in conda): pip install mysql-connector-python 
+   Install mysql.connector (can do broadly in conda): 
+    
+         pip install mysql-connector-python 
   
-    > Install in specific conda environment: 
-    pip install --install-option="--prefix=$PREFIX_PATH_TO_ENVIRONMENT" mysql-connector-python
+   Install in specific conda environment: 
+         
+         pip install --install-option="--prefix=$PREFIX_PATH_TO_ENVIRONMENT" mysql-connector-python
     
    Note: VSCode requires selection of a specific python interpreter, make sure mysql-connector-python is installed in that directory
 
