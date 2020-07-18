@@ -1,0 +1,14 @@
+{
+    "python.pythonPath": "/Users/alicecastillo/anaconda3/bin/python",
+    "sqltools.connections": [
+        {
+            "database": "schedule_db",
+            "dialect": "MySQL",
+            "name": "Scheduling",
+            "password": "OpEd2020!",
+            "port": 3306,
+            "server": "localhost",
+            "username": "acastillo"
+        }
+    ]
+}
