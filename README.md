@@ -4,9 +4,13 @@ CONDA
 Install Anaconda: https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html
 
   > Set up virtual environment with mysql.connector package: conda create --name myenv
+  
     > Proceed? y
+    
   > Activate environment: conda activate
+  
   > Install mysql.connector (can do broadly in conda): pip install mysql-connector-python 
+  
     > Install in specific conda environment: pip install --install-option="--prefix=$PREFIX_PATH_TO_ENVIRONMENT" mysql-connector-python
     
     Note: VSCode requires selection of a specific python interpreter, make sure mysql-connector-python is installed in that directory
@@ -17,11 +21,17 @@ MYSQL
 Install MySQL with Homebrew: https://gist.github.com/operatino/392614486ce4421063b9dece4dfe6c21
 
 Set up mysql (if not installed/configured):
+
   - this program uses database "schedule_db" 
+  
   - configure either new user with privileges: [in which case host = localhost]
+  
       mysql> GRANT ALL PRIVILEGES ON schedule_db TO 'username'@'host'
+      
       mysql> GRANT FILE ON *.* TO 'username'@'host'
+      
     OR use root
+    
   - modify credentials used in usefulFunctions.py method "runMySQLOperation" to match local
   
   
