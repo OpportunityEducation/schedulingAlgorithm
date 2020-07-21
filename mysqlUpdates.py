@@ -16,3 +16,20 @@ def updateCourseEnrollment(user_id, course_section_id, new_course_section):
 def updateFormattedOutput(mentor, class_name, section_number):
     query = ("UPDATE formatted_output SET mentor='%s' WHERE class_name = '%s' AND section_number=%s" %(mentor, class_name, section_number))
     cursor = runMySQLOperation(query)
+
+def updateRoomForCourseSection(period, id):
+    query = ("UPDATE course_section SET class_period=%s WHERE id=%s" %(period, id))
+    cursor = runMySQLOperation(query)
+
+def decrementPeriodsLeft(index, periodsLeft):
+    query = ("UPDATE periods SET periods_left=%s WHERE id=%s" %(periodsLeft, index))
+    cursor = runMySQLOperation(query)
+
+def setPeriodsLeft():
+    query = ("UPDATE periods SET periods_left = 7")
+    cursor = runMySQLOperation(query)
+
+def addPeriodsToFormattedOutput(period, class_name, section_number):
+    query = ("UPDATE formatted_output SET period=%s WHERE class_name = '%s' AND section_number=%s" %(period, class_name, section_number))
+    cursor = runMySQLOperation(query)
+    print("here is that shit")

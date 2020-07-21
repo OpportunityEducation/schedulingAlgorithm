@@ -114,6 +114,12 @@ def getStudentEnrollmentByStudentID(id):
         enrolledCourses.append(EnrolledCourse(course_section_id, user_id))
     return enrolledCourses
 
+def getMentorIDByCourseSection(id):
+    query = ("SELECT user_id FROM course_enrollment WHERE is_mentor=1 AND course_section_id=%s" %(id))
+    cursor = runMySQLOperation(query)
+    for user_id in cursor:
+        return user_id
+
 def getStudentEnrollmentPreferencesByID(id):
     query = ("SELECT * FROM student_course_preferences_unenrolled WHERE student_id=%s" %(id))
     cursor = runMySQLOperation(query)
@@ -214,12 +220,42 @@ def getAllPeriodTimeBlocks():
     periods = []
     periodID = 0
     period = []
-    for (id, day_id, start_time, end_time) in cursor:
-        if periodID != id:
+    for (id, day_id, start_time, end_time, periods_left) in cursor:
+        if periodID != int(id):
             periods.append(period)
-            period = CommitmentBlock(day_id, start_time, end_time)
+            period = [CommitmentBlock(day_id, start_time, end_time)]
             periodID = id
         else:
             period.append(CommitmentBlock(day_id, start_time, end_time))
+    periods.append(period)
     return periods  
+
+def getMentorIDsWithLimitedAvailability():
+    query = ("SELECT mentor_id FROM mentor_availability")
+    cursor = runMySQLOperation(query)
+    ids = []
+    for mentor_id in cursor:
+        ids.append(mentor_id)
+    return set(ids)
     
+def getMentorAvailabilityByID(id):
+    query = ("SELECT day_id, start_time, end_time FROM mentor_availability WHERE mentor_id=%s" %(id))
+    cursor = runMySQLOperation(query)
+    blocks = []
+    for (day_id, start_time, end_time) in cursor:
+        blocks.append(CommitmentBlock(day_id, start_time, end_time))
+    return blocks     
+
+def getCourseSectionCount():
+    query = ("SELECT * FROM course_section")
+    cursor = runMySQLOperation(query)
+    return cursor.rowcount
+
+def getPeriodsLeftByID(id):
+    query = ("SELECT periods_left FROM periods WHERE id=%s" %(id))
+    cursor = runMySQLOperation(query)
+    periodsLeft = []
+    for periods_left in cursor:
+        periodsLeft.append(periods_left)
+    pL = [x[0] for x in periodsLeft]
+    return pL[0]

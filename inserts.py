@@ -46,3 +46,4 @@ def addMentor(mentor_id, mentor_name, planning_periods):
 def addMentorToCourseSection(course_section_id,  user_id):
     query = ("INSERT INTO  course_enrollment (course_section_id, is_mentor, user_id) VALUES (%s, 1, %s)" %(course_section_id, user_id))
     cursor = runMySQLOperation(query)
+    

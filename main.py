@@ -3,7 +3,7 @@
 
 #import subfiles
 import settings, tierAssignment, inserts, queries, enrollment
-import deletions, formatData, usefulFunctions, scheduling
+import deletions, formatData, usefulFunctions, scheduling, mysqlUpdates
 
 #init assumptions
 settings.init()
@@ -14,6 +14,9 @@ truncateThese = ["student_course_preferences_unenrolled", "course_enrollment", "
 for table in truncateThese:
     deletions.truncateTable(table)
 
+print(queries.getPeriodsLeftByID(2))
+mysqlUpdates.setPeriodsLeft()
+print(queries.getPeriodsLeftByID(2))
  
 #format and insert student course preferences
 formatData.init()
@@ -33,3 +36,8 @@ enrollment.balanceSections()
 enrollment.matchMentors()
 
 #schedule course sections 
+scheduling.init()
+
+allCSs = queries.getAllCourseSections()
+for course_section in allCSs:
+    scheduling.addPeriodToFormattedOutput(course_section)

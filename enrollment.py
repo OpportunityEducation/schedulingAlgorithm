@@ -5,8 +5,8 @@ from random import shuffle
 from usefulFunctions import shuffleArray
 from scheduling import groupAvailability
 
+global allCourseSections 
 courses = []
-allCourseSections = []
 courseSectionId = 0
 cs1 = []
 cs2 = []
@@ -15,6 +15,7 @@ cs2M = 0
 
 #init 
 def init(studentList):
+    allCourseSections = []
     getRequestedCourses(studentList)
     enroll(studentList, 0)
 

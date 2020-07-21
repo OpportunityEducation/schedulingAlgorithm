@@ -34,3 +34,9 @@ def runMySQLOperation(op):
     scheduledb.close()
     return cursor
     
+#convert timedelta to minutes
+def convertToMinutes(time):
+    hourMinSec = time.split(':')
+    minutes = int(hourMinSec[0])*60 + int(hourMinSec[1])
+    print("%s is %s minutes" %(time, minutes))
+    return minutes
