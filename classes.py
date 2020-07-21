@@ -1,3 +1,8 @@
+class Day:
+    def __init__(self, id, weekday):
+        self.id = id
+        self.weekday = weekday
+
 class Course:
     def __init__(self, id, name, allowed_grades, is_elective):
         self.id = id
@@ -68,3 +73,18 @@ class Mentor:
         self.id = id    
         self.name = name
         self.planning_periods = planning_periods
+
+class CommitmentBlock:
+    def __init__(self, day_id, start_time, end_time):
+        self.start_time = start_time
+        self.end_time = end_time
+        self.day_id = day_id
+    #id isn't key, need eq & hash
+    def __eq__(self, other):
+        return self.start_time==other.start_time\
+            and self.end_time==other.end_time\
+            and self.day_id==other.day_id
+    def __hash__(self):
+        return hash(('start_time', self.start_time,
+            'end_time', self.end_time, 
+            'day_id', self.day_id))

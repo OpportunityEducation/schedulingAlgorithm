@@ -1,8 +1,9 @@
 #responsible for class assignemnts
 
-import queries, inserts, settings, deletions, mysqlUpdates, usefulFunctions
+import queries, inserts, settings, deletions, mysqlUpdates, usefulFunctions, scheduling
 from random import shuffle
 from usefulFunctions import shuffleArray
+from scheduling import groupAvailability
 
 courses = []
 allCourseSections = []
@@ -63,7 +64,7 @@ def balanceSections():
     allCourseSections = queries.getAllCourseSections()
     for section in allCourseSections:
         if (section.students_enrolled > settings.maxClassSize):
-            print("splitting needed")
+            #print("splitting needed")
             courseSectionId = int(courseSectionId) + 1
             inserts.createCourseSection(courseSectionId, section.course_id, 2)
             courseSectionId = int(courseSectionId) + 1
@@ -77,16 +78,11 @@ def balanceSections():
 def addSectionFormattedOutput(courseId, section):
     course = queries.getCourseByID(courseId)
     studentIDs = queries.getStudentIDsEnrolledByCourseSection(section.id)
-    if course.id == 2:
-        print(studentIDs)
-        print (section.id)
     students = []
     for studentID in studentIDs:
         students.append(queries.getStudentByID(studentID))
     for student in students:
         inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, "TBA", 1)
-        if course.name == "EP1: English":
-            print("ADDING %s WHO'S IN YEAR %s TO COURSE %s" %(student.name, student.year, course.name))
 
 def splitSection(courseId):
     print("splitting section of class %s" %(courseId))
@@ -94,6 +90,7 @@ def splitSection(courseId):
     course = queries.getCourseByID(courseId)
     courseSections = queries.getCourseSectionsByCourseID(courseId)
     studentIDs = queries.getStudentIDsEnrolledByCourseSection(courseSections[0].id)
+    commitedGroups = groupAvailability(studentIDs)
     females = []
     nonFemales = []
     for studentID in studentIDs:
@@ -158,11 +155,8 @@ def adjustRatio(females, nonFemales, skew):
                 cs1M += 1
             elif i > len(nonFemales)-len(females):
                 cs2.append(females[i])
-                #cs2M += 1
             else:
                 cs2.append(nonFemales[i])
-                #cs2M += 1
-        #cs2M = len(nonFemales) - cs1M
     elif skew == "none" :
         for i in range (0, len(females)):
             if i%2 == 1:
@@ -175,7 +169,6 @@ def adjustRatio(females, nonFemales, skew):
                 cs1M += 1
             else:
                 cs2.append(nonFemales[i])
-                #cs2M += 1
     cs2M = len(nonFemales) - cs1M
   
   
@@ -194,6 +187,7 @@ def matchMentors():
         mysqlUpdates.updateFormattedOutput(mentorName, course.name, section.section_number)
 
 def getMentorWithLeastCourseSections(mentors):
+    #ADD IN CHECKING HOW MANY FREE PERIODS THEY NEED
     addMentor = mentors[0]
     addMentorSections = queries.getCourseSectionNumByMentor(addMentor.mentor_id)
     for mentor in mentors:

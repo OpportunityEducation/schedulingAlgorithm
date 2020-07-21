@@ -3,7 +3,7 @@ import mysql.connector
 
 import classes
 from classes import Course, Student, Mentor, RankedCourse, EnrolledCourse, CourseSection
-from classes import UnformattedPreference, UnformattedQualification, MentorQualifiedClass
+from classes import UnformattedPreference, UnformattedQualification, MentorQualifiedClass, CommitmentBlock
 from usefulFunctions import runMySQLOperation
 
 #create and print queries
@@ -25,7 +25,7 @@ def getStudentByName(name):
     query = ("SELECT * FROM student WHERE name = '%s'" %(name))
     cursor = runMySQLOperation(query)
     for (id, name, gender, year, free_periods) in cursor:
-        print("{} is {}".format(id, name))
+        return Student(id, name, gender, year, free_periods)
 
 def getStudentByID(id):
     query = ("SELECT * FROM student WHERE id=%s" %(id))
@@ -37,7 +37,13 @@ def getDayById(dayId):
     query = ("SELECT * FROM day WHERE id = %s" %(dayId))
     cursor = runMySQLOperation(query)
     for (id, weekday) in cursor:
-        print("{} is {}".format(id, weekday))
+        return weekday
+
+def getDayIDByName(weekday):
+    query = ("SELECT * FROM day WHERE weekday = %s" %(weekday))
+    cursor = runMySQLOperation(query)
+    for (id, weekday) in cursor:
+        return id
 
 def getStudentCoursePreferencesByID(id):
     query = ("SELECT * FROM student_course_preferences WHERE student_id=%s" %(id))
@@ -119,10 +125,10 @@ def getStudentEnrollmentPreferencesByID(id):
 def getStudentIDsEnrolledByCourseSection(course_id):
     query = ("SELECT * FROM course_enrollment WHERE course_section_id=%s and is_mentor=0" %(course_id))
     cursor = runMySQLOperation(query)
-    students = []
+    ids = []
     for (user_id, course_section_id, is_mentor) in cursor:
-        students.append(user_id)
-    return students
+        ids.append(user_id)
+    return ids
 
 def getAllUnformattedPreferences():
     query = ("SELECT * FROM unformatted_preferences")
@@ -167,4 +173,53 @@ def getCourseSectionNumByMentor(mentor_id):
     for (id, name, planning_periods) in cursor:
         totalSections += 1
     return totalSections
+
+def getAllStudentIDsWithCommitments():
+    query = ("SELECT * FROM student_commitments")
+    cursor = runMySQLOperation(query)
+    ids = []
+    for (commitment_type_id, student_id, day_id, start_time, end_time) in cursor:
+        ids.append(student_id)
+    #idSet = set(ids)
+    return set(ids)
+
+def getAllStudentCommitmentStartTimes():
+    query = ("SELECT start_time FROM student_commitments")
+    cursor = runMySQLOperation(query)
+    starts = []
+    for start_time in cursor:
+        starts.append(start_time)
+    return starts
+
+def getAllDistinctStudentCommitmentTimeBlocks():
+    query = ("SELECT day_id, start_time, end_time FROM student_commitments")
+    cursor = runMySQLOperation(query)
+    blocks = [] 
+    for (day_id, start_time, end_time) in cursor:
+        blocks.append(CommitmentBlock(day_id, start_time, end_time))
+    return set(blocks)
+
+def getAllStudentsIDsWithSpecificCommitmentBlock(block):
+    query = ("SELECT student_id FROM student_commitments WHERE day_id=%s AND start_time='%s' AND end_time='%s'"
+        %(block.day_id, block.start_time, block.end_time))
+    cursor = runMySQLOperation(query)
+    students = [] 
+    for student_id in cursor:
+        students.append(student_id)
+    return set(students)  
+
+def getAllPeriodTimeBlocks():
+    query = ("SELECT * FROM periods")
+    cursor = runMySQLOperation(query)
+    periods = []
+    periodID = 0
+    period = []
+    for (id, day_id, start_time, end_time) in cursor:
+        if periodID != id:
+            periods.append(period)
+            period = CommitmentBlock(day_id, start_time, end_time)
+            periodID = id
+        else:
+            period.append(CommitmentBlock(day_id, start_time, end_time))
+    return periods  
     

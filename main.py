@@ -2,7 +2,8 @@
 #beginning of executable
 
 #import subfiles
-import settings, tierAssignment, inserts, queries, enrollment, deletions, formatData, usefulFunctions
+import settings, tierAssignment, inserts, queries, enrollment
+import deletions, formatData, usefulFunctions, scheduling
 
 #init assumptions
 settings.init()
@@ -30,3 +31,5 @@ for i in range (1, settings.periods):
     enrollment.enroll(studentList, i)
 enrollment.balanceSections()
 enrollment.matchMentors()
+
+#schedule course sections 
