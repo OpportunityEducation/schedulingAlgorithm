@@ -62,18 +62,20 @@ def assignPeriod(mentor_id, course_section, isLimited):
         if(isLimited):
             limits = queries.getMentorAvailabilityByID(mentor_id)
             print("assigning restricted mentor")
-            while noMatch:
+            while True:
                 index = posPeriods[randint(0, len(posPeriods)-1)]
                 period = periods[index]
                 periodsLeft = queries.getPeriodsLeftByID(index)
                 if periodsLeft > 0: #& balancePeriods(periodsLeft):
+                    noConflict = True
                     for bk in period:
-                        if checkContainment(bk, limits):
-                            mysqlUpdates.updateRoomForCourseSection(index, course_section.id)
-                            periodsLeft -= 1
-                            mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
-                            noMatch = False
-                            break
+                        noConflict &= checkContainment(bk, limits)
+                    if(noConflict):
+                        mysqlUpdates.updateRoomForCourseSection(index, course_section.id)
+                        periodsLeft -= 1
+                        mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
+                        break
+                            
                         
         else :
             print("assinging non limited prof") 
@@ -105,15 +107,16 @@ def addPeriodToFormattedOutput(course_section):
 
 def checkContainment(period, limits):
     for limit in limits:
-        print("checking containment")
-        lStart = convertToMinutes(str(limit.start_time))
-        lEnd = convertToMinutes(str(limit.end_time))
-        pStart = convertToMinutes(str(period.start_time))
-        pEnd = convertToMinutes(str(period.end_time))
-        if (lStart < pStart & lEnd < pEnd & lEnd > pStart) | (lStart < pStart & lEnd > pEnd) | (lStart > pStart & lEnd < pEnd) | (lStart > pStart & lStart < pEnd & lEnd > pEnd):
-            print("here ya go")
-            return True
-        return False
+        if(limit.day_id == period.day_id):
+            print("checking containment")
+            lStart = convertToMinutes(str(limit.start_time))
+            lEnd = convertToMinutes(str(limit.end_time))
+            pStart = convertToMinutes(str(period.start_time))
+            pEnd = convertToMinutes(str(period.end_time))
+            if (lStart < pStart & lEnd < pEnd & lEnd > pStart) | (lStart < pStart & lEnd > pEnd) | (lStart > pStart & lEnd < pEnd) | (lStart > pStart & lStart < pEnd & lEnd > pEnd):
+                print("here ya go")
+                return False
+    return True
 
 
 def checkMentorEnrolledPeriods(mentor_id):
