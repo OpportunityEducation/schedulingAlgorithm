@@ -175,10 +175,15 @@ def getMentorByName(name):
 def getCourseSectionNumByMentor(mentor_id):
     query = ("SELECT * FROM course_enrollment WHERE user_id=%s AND is_mentor=1" %(mentor_id))
     cursor = runMySQLOperation(query)
-    totalSections = 0
-    for (id, name, planning_periods) in cursor:
-        totalSections += 1
-    return totalSections
+    return cursor.rowcount
+
+def getEnrolledPeriodsForMentor(course_section_id):
+    query = ("SELECT class_period FROM course_section WHERE id=%s" %(course_section_id))
+    cursor = runMySQLOperation(query)
+    mentorSections = 0
+    for class_period in cursor:
+        mentorSections.append(class_period)
+    return mentorSections
 
 def getAllStudentIDsWithCommitments():
     query = ("SELECT * FROM student_commitments")
@@ -259,3 +264,20 @@ def getPeriodsLeftByID(id):
         periodsLeft.append(periods_left)
     pL = [x[0] for x in periodsLeft]
     return pL[0]
+
+def getCourseSectionIDsByMentorID(mentor_id):
+    query = ("SELECT course_section_id FROM course_enrollment WHERE user_id=%s AND is_mentor=1" %(mentor_id))
+    cursor = runMySQLOperation(query)
+    ids = []
+    for course_section_id in cursor:
+        ids.append(course_section_id)
+    return ids
+
+def getPeriodFromCourseSectionID(sectionID):
+    query = ("SELECT class_period FROM course_section WHERE id=%s" %(sectionID))
+    cursor = runMySQLOperation(query)
+    cps = []
+    for class_period in cursor:
+        cps.append(class_period)
+    cp = [x[0] for x in cps]
+    return cp[0]

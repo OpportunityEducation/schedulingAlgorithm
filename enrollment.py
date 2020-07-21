@@ -184,7 +184,8 @@ def matchMentors():
             mentors = shuffleArray(mentors, 5)
             mentorName = getMentorWithLeastCourseSections(mentors)
         mentor = queries.getMentorByName(mentorName)
-        inserts.addMentorToCourseSection(course.id, mentor.id)
+        inserts.addMentorToCourseSection(section.id, mentor.id)
+        mentor_id = queries.getMentorIDByCourseSection(section.id)
         mysqlUpdates.updateFormattedOutput(mentorName, course.name, section.section_number)
 
 def getMentorWithLeastCourseSections(mentors):

@@ -28,6 +28,7 @@ def init():
     for course_section in remainingCourseSections:
         print("course sectin id %s" %(course_section.id))
         mentor_id = queries.getMentorIDByCourseSection(course_section.id)
+        print("mentor id is %s" %(mentor_id))
         assignPeriod(mentor_id, course_section, False)
 
     #then assign rooms to sections
@@ -53,36 +54,43 @@ def groupAvailability(users): #, isMentor):
 
 def assignPeriod(mentor_id, course_section, isLimited):
     noMatch = True
-    if(isLimited):
-        limits = queries.getMentorAvailabilityByID(mentor_id)
-        print("assigning restricted mentor")
-        while noMatch:
-            #NEED TO CHECK NOT BY BLOCKS BUT INSTEAD IF CONTAINING
-            index = randint(1,6)
-            period = periods[index]
-            periodsLeft = queries.getPeriodsLeftByID(index)
-            if periodsLeft > 0:
-                for bk in period:
-                    if checkContainment(bk, limits):
-                        mysqlUpdates.updateRoomForCourseSection(index, course_section.id)
-                        periodsLeft -= 1
-                        mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
-                        noMatch = False
-                        break
-                    
-    else :
-       print("assinging non limited prof") 
-       while noMatch:
-            index = randint(1,6)
-            period = periods[index]
-            periodsLeft = queries.getPeriodsLeftByID(index)
-            if periodsLeft > 0:
-                mysqlUpdates.updateRoomForCourseSection(index, course_section.id)
-                periodsLeft -= 1
-                print("before decrement")
-                mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
-                noMatch = False
-                break
+    posPeriods = [1, 2, 3, 4, 5, 6]
+    posPeriods = set(posPeriods) - set(checkMentorEnrolledPeriods(mentor_id))
+    print(posPeriods)
+    posPeriods = list(posPeriods)
+    if len(posPeriods) > 0:
+        if(isLimited):
+            limits = queries.getMentorAvailabilityByID(mentor_id)
+            print("assigning restricted mentor")
+            while noMatch:
+                index = posPeriods[randint(0, len(posPeriods)-1)]
+                period = periods[index]
+                periodsLeft = queries.getPeriodsLeftByID(index)
+                if periodsLeft > 0: #& balancePeriods(periodsLeft):
+                    for bk in period:
+                        if checkContainment(bk, limits):
+                            mysqlUpdates.updateRoomForCourseSection(index, course_section.id)
+                            periodsLeft -= 1
+                            mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
+                            noMatch = False
+                            break
+                        
+        else :
+            print("assinging non limited prof") 
+            while noMatch:
+                index = posPeriods[randint(0, len(posPeriods)-1)]
+                period = periods[index]
+                #print(period)
+                periodsLeft = queries.getPeriodsLeftByID(index)
+                if periodsLeft > 0:
+                    mysqlUpdates.updateRoomForCourseSection(index, course_section.id)
+                    periodsLeft -= 1
+                    print("before decrement")
+                    mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
+                    noMatch = False
+                    break
+    else:
+        print("mentor has run out of possible sections")
     print(queries.getCourseSectionCount())
 
 
@@ -93,6 +101,7 @@ def assignRoom(course_section):
 def addPeriodToFormattedOutput(course_section):
     classObj = queries.getCourseByID(course_section.course_id)
     mysqlUpdates.addPeriodsToFormattedOutput(course_section.class_period, classObj.name, course_section.section_number)
+
 
 def checkContainment(period, limits):
     for limit in limits:
@@ -105,3 +114,20 @@ def checkContainment(period, limits):
             print("here ya go")
             return True
         return False
+
+
+def checkMentorEnrolledPeriods(mentor_id):
+    sectionIDs = queries.getCourseSectionIDsByMentorID(mentor_id)
+    periods = []
+    for sectionID in sectionIDs:
+        periods.append(queries.getPeriodFromCourseSectionID(sectionID))
+    print("assigned periods %s" %(periods))
+    return periods
+
+def balancePeriods(periodsLeft):
+    remainders = []
+    for i in range (1,7):
+        print(i)
+        remainders.append(queries.getPeriodsLeftByID(i))
+    print (remainders)
+    return True
