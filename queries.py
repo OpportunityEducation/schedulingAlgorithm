@@ -302,7 +302,8 @@ def getClassroomsByType(type_id):
     ids = []
     for id in cursor:
         ids.append(id)
-    return ids
+    idList = [x[0] for x in ids]
+    return idList
 
 def getRoomsBookedByPeriod(periodId):
     query = ("SELECT classroom_id FROM course_section WHERE class_period=%s" %(periodId))
@@ -310,10 +311,15 @@ def getRoomsBookedByPeriod(periodId):
     roomIds = []
     for classroom_id in cursor:
         roomIds.append(classroom_id)
+    # idList = [x[0] for x in roomIds]
+    # return idList
     return roomIds
 
 def getCapacityByRoomId(room_id):
     query = ("SELECT capacity FROM classroom WHERE id=%s" %(room_id))
     cursor = runMySQLOperation(query)
+    cap = []
     for capacity in cursor:
-        return capacity
+        cap.append(capacity)
+    cp = [x[0] for x in cap]
+    return cp[0]

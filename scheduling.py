@@ -94,9 +94,11 @@ def assignRoom(course_section):
     openRooms = list(findAvailableRooms(course.course_type, course_section))
     openRoomsWithCapacity = dict()
     for openRoomId in openRooms:
-        openRoomsWithCapacity[openRoomId] = queries.getCapacityByRoomId(openRoomId)
+        capacity = queries.getCapacityByRoomId(openRoomId)
+        openRoomsWithCapacity[openRoomId] = capacity
+        print(queries.getCapacityByRoomId(openRoomId))
     ascCapacity = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
-    
+    print(ascCapacity)
     print("assigning to periods")
 
 
@@ -123,7 +125,6 @@ def checkMentorEnrolledPeriods(mentor_id):
     periods = []
     for sectionID in sectionIDs:
         periods.append(queries.getPeriodFromCourseSectionID(sectionID))
-    #print("assigned periods %s" %(periods))
     return periods
 
 #control for randomization outlying possibility of heavily lopsided enrollment
@@ -138,9 +139,11 @@ def findAvailableRooms(course_type, course_section):
     types = course_type.split(',')
     roomIds = []
     for type_id in types:
-        print(type_id)
         roomIds = queries.getClassroomsByType(type_id)
+    print("roomIds %s" %(roomIds))
     bookedRooms = queries.getRoomsBookedByPeriod(course_section.class_period)
+    print("roomsBooked %s" %(bookedRooms))
     availableRooms = set(roomIds) - set(bookedRooms)
+    print(availableRooms)
     return availableRooms
     
