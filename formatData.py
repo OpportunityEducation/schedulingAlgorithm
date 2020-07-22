@@ -19,10 +19,10 @@ def insertPreferences():
             if req != '' and req != ' ':
                 if(req[len(req)-1] == ' '):
                     req = req[:-1]
-                if(req == "CSP"):
-                    req = "CSP (Computer Science Principles)"
                 if(req == "Physcial Education"):
                     req = "Physical Education"
+                if(req== "CSP"):
+                    req = "CSP (Computer Science Principles)"
                 course = queries.getCourseByName(req)
                 inserts.addFormattedPreference(course.id, preferenceId, rank, student.student_id)
                 rank += 1

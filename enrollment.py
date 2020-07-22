@@ -86,7 +86,7 @@ def addSectionFormattedOutput(courseId, section):
         inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, "TBA", 1)
 
 def splitSection(courseId):
-    print("splitting section of class %s" %(courseId))
+    #("splitting section of class %s" %(courseId))
     global cs1, cs2, cs1M, cs2M
     course = queries.getCourseByID(courseId)
     courseSections = queries.getCourseSectionsByCourseID(courseId)

@@ -14,9 +14,9 @@ truncateThese = ["student_course_preferences_unenrolled", "course_enrollment", "
 for table in truncateThese:
     deletions.truncateTable(table)
 
-print(queries.getPeriodsLeftByID(2))
+#print(queries.getPeriodsLeftByID(2))
 mysqlUpdates.setPeriodsLeft()
-print(queries.getPeriodsLeftByID(2))
+#print(queries.getPeriodsLeftByID(2))
  
 #format and insert student course preferences
 formatData.init()

@@ -2,6 +2,8 @@
 
 #init all globals
 
+import queries
+
 def init():
     global minClassSize
     minClassSize = 12
@@ -9,3 +11,5 @@ def init():
     maxClassSize = 16
     global periods
     periods = 6
+    # global typenum
+    # typenum = queries.getNumberOfCourseTypes()

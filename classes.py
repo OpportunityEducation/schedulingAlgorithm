@@ -4,11 +4,12 @@ class Day:
         self.weekday = weekday
 
 class Course:
-    def __init__(self, id, name, allowed_grades, is_elective):
+    def __init__(self, id, name, allowed_grades, is_elective, course_type):
         self.id = id
         self.name = name
         self.allowed_grades = allowed_grades
         self.is_elective = is_elective
+        self.course_type = course_type
 
 class Student:
     def __init__(self, id, name, gender, year, free_periods):

@@ -32,4 +32,3 @@ def setPeriodsLeft():
 def addPeriodsToFormattedOutput(period, class_name, section_number):
     query = ("UPDATE formatted_output SET period=%s WHERE class_name = '%s' AND section_number=%s" %(period, class_name, section_number))
     cursor = runMySQLOperation(query)
-    print("here is that shit")

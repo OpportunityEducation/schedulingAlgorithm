@@ -67,14 +67,14 @@ def getStudentCoursePreferencesByCourseID(id):
 def getCourseByID(id):
     query = ("SELECT * FROM course WHERE id=%s" %(id))
     cursor = runMySQLOperation(query)
-    for (id, name, allowed_grades, is_elective) in cursor:
-        return Course(id, name, allowed_grades, is_elective)
+    for (id, name, allowed_grades, is_elective, course_type) in cursor:
+        return Course(id, name, allowed_grades, is_elective, course_type)
 
 def getCourseByName(name):
     query = ("SELECT * FROM course WHERE name='%s'" %(name))
     cursor = runMySQLOperation(query)
-    for (id, name, allowed_grades, is_elective) in cursor:
-        return Course(id, name, allowed_grades, is_elective)
+    for (id, name, allowed_grades, is_elective, course_type) in cursor:
+        return Course(id, name, allowed_grades, is_elective, course_type)
 
 def getCourseSectionByID(id):
     query = ("SELECT * FROM course_section WHERE id=%s" %(id))
@@ -102,8 +102,8 @@ def getAllCourses():
     query = ("SELECT * FROM course")
     cursor = runMySQLOperation(query)
     allCourses = []
-    for (id, name, allowed_grades, is_elective) in cursor:
-        allCourses.append(Course(id, name, allowed_grades, is_elective))
+    for (id, name, allowed_grades, is_elective, course_type) in cursor:
+        allCourses.append(Course(id, name, allowed_grades, is_elective, course_type))
     return allCourses     
 
 def getStudentEnrollmentByStudentID(id):
@@ -281,3 +281,17 @@ def getPeriodFromCourseSectionID(sectionID):
         cps.append(class_period)
     cp = [x[0] for x in cps]
     return cp[0]
+
+def getNumberOfCourseTypes():
+    query = ("SELECT * FROM classroom_type")
+    cursor = runMySQLOperation(query)
+    return cursor.rowcount
+
+def getAllCourseTypes(typenum):
+    query = ("SELECT * FROM classroom_type")
+    cursor = runMySQLOperation(query)
+    #change number of types if necessary
+    types = dict.fromkeys(range(1,typenum), [])
+    for (id, course_type) in cursor:
+        types[id].append(course_type)
+    return types
