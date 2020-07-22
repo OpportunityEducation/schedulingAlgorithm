@@ -17,7 +17,7 @@ def updateFormattedOutput(mentor, class_name, section_number):
     query = ("UPDATE formatted_output SET mentor='%s' WHERE class_name = '%s' AND section_number=%s" %(mentor, class_name, section_number))
     cursor = runMySQLOperation(query)
 
-def updateRoomForCourseSection(period, id):
+def updatePeriodForCourseSection(period, id):
     query = ("UPDATE course_section SET class_period=%s WHERE id=%s" %(period, id))
     cursor = runMySQLOperation(query)
 
@@ -29,6 +29,10 @@ def setPeriodsLeft():
     query = ("UPDATE periods SET periods_left = 7")
     cursor = runMySQLOperation(query)
 
-def addPeriodsToFormattedOutput(period, class_name, section_number):
-    query = ("UPDATE formatted_output SET period=%s WHERE class_name = '%s' AND section_number=%s" %(period, class_name, section_number))
+def addSchedulingToFormattedOutput(period, room_name, class_name, section_number):
+    query = ("UPDATE formatted_output SET period=%s, classroom = '%s' WHERE class_name = '%s' AND section_number=%s" %(period, room_name, class_name, section_number))
+    cursor = runMySQLOperation(query)
+
+def assignCourseSectionToRoom(id, section_number, assignedRoom):
+    query = ("UPDATE course_section SET classroom_id=%s WHERE id=%s AND section_number=%s" %(assignedRoom, id, section_number))
     cursor = runMySQLOperation(query)

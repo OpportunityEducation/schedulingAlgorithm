@@ -89,3 +89,10 @@ class CommitmentBlock:
         return hash(('start_time', self.start_time,
             'end_time', self.end_time, 
             'day_id', self.day_id))
+
+class Classroom:
+    def __init__(self, id, name, capacity, classroom_type_id):
+        self.id = id
+        self.name = name
+        self.capacity = capacity
+        self.classroom_type_id = classroom_type_id

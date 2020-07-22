@@ -6,15 +6,13 @@ from usefulFunctions import convertToMinutes
 
 periods = []
 limitedMentors = []
-# courseTypes = dict.fromkeys(range(1,settings.typenum), [])
 
 #init
 def init():
     #NEED TO INIT AMOUNT PER PERIODS (COURSE SECTION COUNT/SETTINGS.NUMBER OF PERIODS)
-    global periods, limitedMentors #, courseTypes
+    global periods, limitedMentors 
     periods = queries.getAllPeriodTimeBlocks()
     limitedMentors = queries.getMentorIDsWithLimitedAvailability()
-    #courseTypes = queries.getAllCourseTypes(settings.typenum)
     print("init scheduling")
     remainingCourseSections = []
 
@@ -31,9 +29,18 @@ def init():
         mentor_id = queries.getMentorIDByCourseSection(course_section.id)
         assignPeriod(mentor_id, course_section, False)
 
-    #then assign rooms to sections
-    for course_section in enrollment.allCourseSections:
-        assignRoom(course_section)
+    #then assign rooms to sections by period
+    for i in range (1, settings.periods+1):
+        sections = queries.getCourseSectionsByPeriod(i)
+        assignRoomByPeriod(sections, i)
+
+    for section in queries.getAllCourseSections():
+        addRoomsToFormattedOutput(section)
+
+    # for course_section in enrollment.allCourseSections:
+    #     assignRoom(course_section)
+    #     section = queries.getCourseSectionByID(course_section.id)
+    #     addRoomsToFormattedOutput(section)
 
 
 #checks availability and if matching, groups 
@@ -70,7 +77,7 @@ def assignPeriod(mentor_id, course_section, isLimited):
                     for bk in period:
                         noConflict &= checkContainment(bk, limits)
                     if(noConflict):
-                        mysqlUpdates.updateRoomForCourseSection(index, course_section.id)
+                        mysqlUpdates.updatePeriodForCourseSection(index, course_section.id)
                         periodsLeft -= 1
                         mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
                         break                    
@@ -80,7 +87,7 @@ def assignPeriod(mentor_id, course_section, isLimited):
                 period = periods[index]
                 periodsLeft = queries.getPeriodsLeftByID(index)
                 if periodsLeft > 0:
-                    mysqlUpdates.updateRoomForCourseSection(index, course_section.id)
+                    mysqlUpdates.updatePeriodForCourseSection(index, course_section.id)
                     periodsLeft -= 1
                     mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
                     noMatch = False
@@ -89,22 +96,101 @@ def assignPeriod(mentor_id, course_section, isLimited):
         print("mentor has run out of possible sections")
 
 
-def assignRoom(course_section):
-    course = queries.getCourseByID(course_section.course_id)
-    openRooms = list(findAvailableRooms(course.course_type, course_section))
-    openRoomsWithCapacity = dict()
-    for openRoomId in openRooms:
-        capacity = queries.getCapacityByRoomId(openRoomId)
-        openRoomsWithCapacity[openRoomId] = capacity
-        print(queries.getCapacityByRoomId(openRoomId))
-    ascCapacity = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
-    print(ascCapacity)
-    print("assigning to periods")
+def assignRoomByPeriod(sections, period):
+    print("assigning room by period")
+
+    #sort sections by num enrolled as we need to enroll smallest classes first
+    sections.sort(key=lambda x: x.students_enrolled) 
+
+    #OMAHA ONLY
+    if any(section.course_id == 23 for section in sections):
+        print("CSP must be in 340 which has id 5")
+        cspSection = next((x for x in sections if x.course_id == 23), None)
+        mysqlUpdates.assignCourseSectionToRoom(cspSection.id,cspSection.section_number, 5)
+    unfitSections = []
+    for section in sections:
+        if section.course_id != 23: #OMAHA ONLY: CSP case
+            course = queries.getCourseByID(section.course_id)
+            openRooms = list(findAvailableRooms(course.course_type, section))
+            print("open rooms: %s" %(openRooms))
+            openRoomsWithCapacity = dict()
+            for openRoomId in openRooms:
+                capacity = queries.getCapacityByRoomId(openRoomId)
+                openRoomsWithCapacity[str(openRoomId)] = capacity
+            openRoomsWithCapacity = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
+            assignedRoom = 0
+            for key, value in openRoomsWithCapacity:
+                if value >= section.students_enrolled:
+                    assignedRoom = int(key)
+                    break
+            if assignedRoom == 0:
+                unfitSections.append(section)
+                print(" not ASSIGNED %s" %(section.id))
+                if section.id == 2:
+                    print("********" )
+            else: 
+                mysqlUpdates.assignCourseSectionToRoom(section.id, section.section_number, assignedRoom)
+                print("ASSIGNED %s" %(section.id))
+    #bookedRooms = set(queries.getRoomsBookedByPeriod(period))
+    
+    print("moving on to unfit sections! %s" %(len(unfitSections)))
+    for section in unfitSections:
+        print("FOR SECTION # %s " %(section.id))
+        openRooms = list(set(queries.getAllRooms()) - set(queries.getRoomsBookedByPeriod(period)))
+        openRoomsWithCapacity = dict()
+        for openRoomId in openRooms:
+            capacity = queries.getCapacityByRoomId(openRoomId)
+            openRoomsWithCapacity[str(openRoomId)] = capacity
+        openRoomsWithCapacity = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
+        print(openRoomsWithCapacity)
+        assignedRoom = 0
+        for key, value in openRoomsWithCapacity:
+            if value >= section.students_enrolled:
+                assignedRoom = int(key)
+                break
+        if assignedRoom == 0:
+            print("oh shoot there was no class of capacity for this section")
+            print("needed capacity %s" %(section.students_enrolled))
+        else: 
+            print(assignedRoom)
+            mysqlUpdates.assignCourseSectionToRoom(section.id, section.section_number, assignedRoom)
+            print("ASSIGNED %s" %(section.id))
+
+# def assignRoom(course_section):
+#     # first assign based on open same type, then go back and do any open
+#     # also need to do it based on period
+#     # course = queries.getCourseByID(course_section.course_id)
+#     # openRooms = list(findAvailableRooms(course.course_type, course_section))
+#     # print(openRooms)
+#     # openRoomsWithCapacity = dict()
+#     # for openRoomId in openRooms:
+#     #     capacity = queries.getCapacityByRoomId(openRoomId)
+#     #     openRoomsWithCapacity[str(openRoomId)] = capacity
+#     #     if(course_section.course_id == 10):
+#     #         print(queries.getCapacityByRoomId(openRoomId))
+#     # openRoomsWithCapacity = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
+#     # if(course_section.course_id == 10):
+#     #     print(openRoomsWithCapacity)
+#     # assignedRoom = 0
+#     # for key, value in openRoomsWithCapacity:
+#     #     if value >= course_section.students_enrolled:
+#     #         assignedRoom = int(key)
+#     #         break
+#     # if assignedRoom == 0:
+#     #     print("oh shoot there was no class of capacity for this section")
+#     # else: 
+#     #     mysqlUpdates.assignCourseSectionToRoom(course_section.id, course_section.section_number, assignedRoom)
+#     #print("assigning to periods")
 
 
-def addPeriodToFormattedOutput(course_section):
+def addRoomsToFormattedOutput(course_section):
     classObj = queries.getCourseByID(course_section.course_id)
-    mysqlUpdates.addPeriodsToFormattedOutput(course_section.class_period, classObj.name, course_section.section_number)
+    #print(course_section.classroom_id)
+    room_name = "No room found"
+    if course_section.classroom_id != 0:
+        room_name = (queries.getRoomByID(course_section.classroom_id)).name
+    #print(room_name)
+    mysqlUpdates.addSchedulingToFormattedOutput(course_section.class_period, room_name, classObj.name, course_section.section_number)
 
 
 #determine if limited availability excludes randomly selected period
@@ -127,6 +213,7 @@ def checkMentorEnrolledPeriods(mentor_id):
         periods.append(queries.getPeriodFromCourseSectionID(sectionID))
     return periods
 
+
 #control for randomization outlying possibility of heavily lopsided enrollment
 def balancePeriods(periodsLeft):
     remainders = []
@@ -140,10 +227,9 @@ def findAvailableRooms(course_type, course_section):
     roomIds = []
     for type_id in types:
         roomIds = queries.getClassroomsByType(type_id)
-    print("roomIds %s" %(roomIds))
-    bookedRooms = queries.getRoomsBookedByPeriod(course_section.class_period)
-    print("roomsBooked %s" %(bookedRooms))
-    availableRooms = set(roomIds) - set(bookedRooms)
-    print(availableRooms)
+    bookedRooms = set(queries.getRoomsBookedByPeriod(course_section.class_period))
+    #print("roomsBooked %s" %(bookedRooms))
+    availableRooms = set(roomIds) - bookedRooms
+    #print("avialable %s" %(availableRooms))
     return availableRooms
     

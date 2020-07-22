@@ -2,7 +2,7 @@
 import mysql.connector
 
 import classes
-from classes import Course, Student, Mentor, RankedCourse, EnrolledCourse, CourseSection
+from classes import Course, Student, Mentor, RankedCourse, EnrolledCourse, CourseSection, Classroom
 from classes import UnformattedPreference, UnformattedQualification, MentorQualifiedClass, CommitmentBlock
 from usefulFunctions import runMySQLOperation
 
@@ -311,9 +311,9 @@ def getRoomsBookedByPeriod(periodId):
     roomIds = []
     for classroom_id in cursor:
         roomIds.append(classroom_id)
-    # idList = [x[0] for x in roomIds]
-    # return idList
-    return roomIds
+    idList = [x[0] for x in roomIds]
+    return idList
+    #return roomIds
 
 def getCapacityByRoomId(room_id):
     query = ("SELECT capacity FROM classroom WHERE id=%s" %(room_id))
@@ -323,3 +323,26 @@ def getCapacityByRoomId(room_id):
         cap.append(capacity)
     cp = [x[0] for x in cap]
     return cp[0]
+
+def getRoomByID(id):
+    query = ("SELECT * FROM classroom WHERE id=%s" %(id))
+    cursor = runMySQLOperation(query)
+    for (id, name, capacity, classroom_type_id) in cursor:
+        return Classroom(id, name, capacity, classroom_type_id)
+
+def getCourseSectionsByPeriod(i):
+    query = ("SELECT * from course_section WHERE class_period=%s" %(i))
+    cursor = runMySQLOperation(query)
+    allSections = []
+    for (id, course_id, section_number, classroom_id, class_period, students_enrolled, males_enrolled) in cursor:
+        allSections.append(CourseSection(id, course_id, section_number, classroom_id, class_period, students_enrolled, males_enrolled))
+    return allSections
+
+def getAllRooms():
+    query = ("SELECT * from classroom")
+    cursor = runMySQLOperation(query)
+    ids = []
+    for (id, name, capacity, classroom_type_id) in cursor:
+        ids.append(id)
+    return ids
+    

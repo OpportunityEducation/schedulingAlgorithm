@@ -39,5 +39,7 @@ enrollment.matchMentors()
 scheduling.init()
 
 allCSs = queries.getAllCourseSections()
-for course_section in allCSs:
-    scheduling.addPeriodToFormattedOutput(course_section)
+print(allCSs[1].classroom_id)
+print("putting into formatted_outputs")
+# for course_section in allCSs:
+#     scheduling.addSchedulingToFormattedOutput(course_section)
