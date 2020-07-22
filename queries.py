@@ -295,3 +295,25 @@ def getAllCourseTypes(typenum):
     for (id, course_type) in cursor:
         types[id].append(course_type)
     return types
+
+def getClassroomsByType(type_id):
+    query = ("SELECT id FROM classroom WHERE classroom_type_id=%s" %(type_id))
+    cursor = runMySQLOperation(query)
+    ids = []
+    for id in cursor:
+        ids.append(id)
+    return ids
+
+def getRoomsBookedByPeriod(periodId):
+    query = ("SELECT classroom_id FROM course_section WHERE class_period=%s" %(periodId))
+    cursor = runMySQLOperation(query)
+    roomIds = []
+    for classroom_id in cursor:
+        roomIds.append(classroom_id)
+    return roomIds
+
+def getCapacityByRoomId(room_id):
+    query = ("SELECT capacity FROM classroom WHERE id=%s" %(room_id))
+    cursor = runMySQLOperation(query)
+    for capacity in cursor:
+        return capacity

@@ -90,6 +90,13 @@ def assignPeriod(mentor_id, course_section, isLimited):
 
 
 def assignRoom(course_section):
+    course = queries.getCourseByID(course_section.course_id)
+    openRooms = list(findAvailableRooms(course.course_type, course_section))
+    openRoomsWithCapacity = dict()
+    for openRoomId in openRooms:
+        openRoomsWithCapacity[openRoomId] = queries.getCapacityByRoomId(openRoomId)
+    ascCapacity = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
+    
     print("assigning to periods")
 
 
@@ -98,6 +105,7 @@ def addPeriodToFormattedOutput(course_section):
     mysqlUpdates.addPeriodsToFormattedOutput(course_section.class_period, classObj.name, course_section.section_number)
 
 
+#determine if limited availability excludes randomly selected period
 def checkContainment(period, limits):
     for limit in limits:
         if(limit.day_id == period.day_id):
@@ -118,9 +126,21 @@ def checkMentorEnrolledPeriods(mentor_id):
     #print("assigned periods %s" %(periods))
     return periods
 
-
+#control for randomization outlying possibility of heavily lopsided enrollment
 def balancePeriods(periodsLeft):
     remainders = []
     for i in range (1,7):
         remainders.append(queries.getPeriodsLeftByID(i))
     return True
+
+
+def findAvailableRooms(course_type, course_section):
+    types = course_type.split(',')
+    roomIds = []
+    for type_id in types:
+        print(type_id)
+        roomIds = queries.getClassroomsByType(type_id)
+    bookedRooms = queries.getRoomsBookedByPeriod(course_section.class_period)
+    availableRooms = set(roomIds) - set(bookedRooms)
+    return availableRooms
+    
