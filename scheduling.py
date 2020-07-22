@@ -37,11 +37,6 @@ def init():
     for section in queries.getAllCourseSections():
         addRoomsToFormattedOutput(section)
 
-    # for course_section in enrollment.allCourseSections:
-    #     assignRoom(course_section)
-    #     section = queries.getCourseSectionByID(course_section.id)
-    #     addRoomsToFormattedOutput(section)
-
 
 #checks availability and if matching, groups 
 def groupAvailability(users): #, isMentor):
@@ -155,32 +150,6 @@ def assignRoomByPeriod(sections, period):
             print(assignedRoom)
             mysqlUpdates.assignCourseSectionToRoom(section.id, section.section_number, assignedRoom)
             print("ASSIGNED %s" %(section.id))
-
-# def assignRoom(course_section):
-#     # first assign based on open same type, then go back and do any open
-#     # also need to do it based on period
-#     # course = queries.getCourseByID(course_section.course_id)
-#     # openRooms = list(findAvailableRooms(course.course_type, course_section))
-#     # print(openRooms)
-#     # openRoomsWithCapacity = dict()
-#     # for openRoomId in openRooms:
-#     #     capacity = queries.getCapacityByRoomId(openRoomId)
-#     #     openRoomsWithCapacity[str(openRoomId)] = capacity
-#     #     if(course_section.course_id == 10):
-#     #         print(queries.getCapacityByRoomId(openRoomId))
-#     # openRoomsWithCapacity = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
-#     # if(course_section.course_id == 10):
-#     #     print(openRoomsWithCapacity)
-#     # assignedRoom = 0
-#     # for key, value in openRoomsWithCapacity:
-#     #     if value >= course_section.students_enrolled:
-#     #         assignedRoom = int(key)
-#     #         break
-#     # if assignedRoom == 0:
-#     #     print("oh shoot there was no class of capacity for this section")
-#     # else: 
-#     #     mysqlUpdates.assignCourseSectionToRoom(course_section.id, course_section.section_number, assignedRoom)
-#     #print("assigning to periods")
 
 
 def addRoomsToFormattedOutput(course_section):

@@ -41,5 +41,3 @@ scheduling.init()
 allCSs = queries.getAllCourseSections()
 print(allCSs[1].classroom_id)
 print("putting into formatted_outputs")
-# for course_section in allCSs:
-#     scheduling.addSchedulingToFormattedOutput(course_section)
