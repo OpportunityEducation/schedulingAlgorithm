@@ -5,7 +5,8 @@ from random import shuffle
 from usefulFunctions import shuffleArray
 from scheduling import groupAvailability
 
-global allCourseSections 
+global allCourseSections
+duplicates = ""
 courses = []
 courseSectionId = 0
 cs1 = []
@@ -199,3 +200,55 @@ def getMentorWithLeastCourseSections(mentors):
             addMentorSections = numSections
     mentor = queries.getMentorByID(addMentor.mentor_id)
     return mentor.name
+
+#get conflicts for scheduling
+def getBiggestConflicts():
+    global duplicates
+    courses = queries.getAllCourses()
+    print("NUM COURSES: %s" %(len(courses)))
+    conflictDict = dict()
+    for i in range(len(courses)):
+        course = courses[i]
+        print("CONFLICTS FOR COURSE: %s"%(course.name))
+        conflicts = dict()
+        duplicates = queries.getDuplicatesByCourse(course.id)
+        for j in range(i+1, len(courses)): #fix this part !!!!!
+            if j < len(courses):
+                other = courses[j]
+                conflictNum = getOverlap(course, other)
+                if conflictNum != 0:
+                    conflicts[str(other.id)] = conflictNum
+            # capacity = queries.getCapacityByRoomId(openRoomId)
+            # openRoomsWithCapacity[str(other.id)] = capacity
+        conflicts = sorted(conflicts.items(), key=lambda x: x[1], reverse=True)
+        print(course.id)
+        print(duplicates)
+        mysqlUpdates.setDuplicates(duplicates, course.id)
+        print("***")
+        conflictDict[str(course.id)] = conflicts #sorted(conflicts.items(), key=lambda x: x[1], reversed=True)
+        #conflicts = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
+
+
+#get exact overlap via roster
+def getOverlap(course, otherCourse):
+    global duplicates
+    courseStudents = queries.getStudentsEnrolledByCourseName(course.name)
+    otherStudents = queries.getStudentsEnrolledByCourseName(otherCourse.name)
+    conflicts = 0
+    for name in courseStudents:
+        if name in otherStudents:
+            conflicts += 1
+    if conflicts/len(courseStudents) > .9 or conflicts/len(otherStudents) > .9:
+        print("found duplicate")
+        if duplicates is None:
+            duplicates = str(otherCourse.id)
+        else :
+            duplicates += "," + str(otherCourse.id)
+        otherDuplicates = queries.getDuplicatesByCourse(otherCourse.id)
+        if otherDuplicates is None:
+            mysqlUpdates.updateDuplicates(course.id, otherCourse.id)
+        else :
+            otherDuplicates += "," + str(course.id)
+            mysqlUpdates.updateDuplicates(otherDuplicates, otherCourse.id)
+    # print(courseStudents)
+    return conflicts

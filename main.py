@@ -35,6 +35,10 @@ for i in range (1, settings.periods):
 enrollment.balanceSections()
 enrollment.matchMentors()
 
+#get course conflicts for scheduling purposes
+mysqlUpdates.clearDuplicates()
+enrollment.getBiggestConflicts()
+
 #schedule course sections 
 scheduling.init()
 

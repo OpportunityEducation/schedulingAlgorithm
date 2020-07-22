@@ -345,4 +345,18 @@ def getAllRooms():
     for (id, name, capacity, classroom_type_id) in cursor:
         ids.append(id)
     return ids
+
+def getStudentsEnrolledByCourseName(name):
+    query = ("SELECT * from formatted_output WHERE class_name='%s'" %(name))
+    cursor = runMySQLOperation(query)
+    names = []
+    for (name, year, gender, class_name, mentor, section_number, period, classroom) in cursor:
+        names.append(name)
+    return names
+
+def getDuplicatesByCourse(id):
+    query = ("SELECT * from course_conflicts WHERE id=%s" %(id))
+    cursor = runMySQLOperation(query)
+    for (id, dupes) in cursor:
+        return dupes
     

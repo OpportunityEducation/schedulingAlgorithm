@@ -36,3 +36,15 @@ def addSchedulingToFormattedOutput(period, room_name, class_name, section_number
 def assignCourseSectionToRoom(id, section_number, assignedRoom):
     query = ("UPDATE course_section SET classroom_id=%s WHERE id=%s AND section_number=%s" %(assignedRoom, id, section_number))
     cursor = runMySQLOperation(query)
+
+def updateDuplicates(duplicate, id):
+    query = ("UPDATE course_conflicts SET duplicates='%s' WHERE id=%s" %(duplicate, id))
+    cursor = runMySQLOperation(query)
+
+def setDuplicates(duplicate, id):
+    query = ("UPDATE course_conflicts SET duplicates='%s' WHERE id=%s" %(duplicate, id))
+    cursor = runMySQLOperation(query)
+
+def clearDuplicates():
+    query = ("UPDATE course_conflicts SET duplicates = NULL WHERE duplicates is not null")
+    cursor = runMySQLOperation(query)
