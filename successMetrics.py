@@ -8,10 +8,11 @@ def init():
 
 def getMentorStats():
     print("obtaining mentor stats")
+    mentors = queries.getAllMentors()
 
 
-def getStudentStats():
-    print("getting students stasts")
+# def getStudentStats():
+#     print("getting students stasts")
 
 
 
@@ -21,3 +22,4 @@ def getStudentConflicts():
         roster = []
         sections = queries.getCourseSectionsByPeriod(i)
         roster = queries.getStudentIDsEnrolledByCourseSection
+

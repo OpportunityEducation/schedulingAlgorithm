@@ -19,6 +19,7 @@ cs2M = 0
 def init(studentList):
     allCourseSections = []
     getRequestedCourses(studentList)
+    #getBiggestConflicts()
     enroll(studentList, 0)
 
 #first find all courses that have been requested 
@@ -220,7 +221,7 @@ def getBiggestConflicts():
                 if conflictNum != 0:
                     conflicts[str(other.id)] = conflictNum
         mysqlUpdates.setDuplicates(duplicates, duplicates_num, course.id)
-        conflictDict[str(course.id)] = sorted(conflicts.items(), key=lambda x: x[1], reverse=True)
+        conflictDict[str(course.id)] = conflicts
 
 
 #get exact overlap via roster

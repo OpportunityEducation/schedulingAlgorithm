@@ -19,9 +19,8 @@ def init():
     print("init scheduling")
     remainingCourseSections = []
 
-    for i in range (1, settings.periods+1):
-        assignDuplicates(i)
-        
+    assignDuplicates()
+
     #assign limited availability mentors first 
     for course_section in enrollment.allCourseSections:
         mentor_id = queries.getMentorIDByCourseSection(course_section.id)
@@ -32,8 +31,9 @@ def init():
 
     #then assign rest of mentors
     for course_section in remainingCourseSections:
-        mentor_id = queries.getMentorIDByCourseSection(course_section.id)
-        assignPeriod(mentor_id, course_section, False)
+        if course_section.class_period == 0: 
+            mentor_id = queries.getMentorIDByCourseSection(course_section.id)
+            assignPeriod(mentor_id, course_section, False)
 
     for i in range(1, settings.periods+1):
         period = queries.getCourseSectionsByPeriod(i)
@@ -202,13 +202,116 @@ def findAvailableRooms(course_type, course_section):
 
 
 
-def assignDuplicates(period):
+def assignDuplicates():
     global conflicts
     duplicates = queries.getAllNonzeroDuplicates()
     duplicates.sort(key=lambda x: x.duplicates_num, reverse=True)
     for course in duplicates:
+        arrange = []
         sections = queries.getCourseSectionsByCourseID(course.id)
-        specificConflicts = conflicts[str(course.id)]
-        specificConflicts.sort(specificConflicts.items(), key=lambda x: x[1], reverse=True)
+        #arrange.append(sections)
+        dupes = queries.getCourseConflictsByCourse(course.id)
+        problems = (dupes.duplicates).split(",")
+        for problem in problems:
+            arrange.append(queries.getCourseSectionsByCourseID(problem))
+        posPeriods = [1, 2, 3, 4, 5, 6]
+        if len(arrange) + len(sections) > 6:
+            print("conflicts are unavoidable as there are more than 6 duplicates")
+            posPeriods = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]
+            sections.append(arrange)
+        else: 
+            arrange.append(sections)
+            sections = arrange
+            
+        for section in sections:
+            if queries.getPeriodFromCourseSectionID == 0:
+                mentorId = queries.getMentorIDByCourseSection(section.id)
+                noMatch = True
+                posPeriods = set(posPeriods) - set(checkMentorEnrolledPeriods(mentorId))
+                posPeriods = list(posPeriods)
+                if len(posPeriods) > 0:
+                        while noMatch:
+                            index = posPeriods[randint(0, len(posPeriods)-1)]
+                            period = periods[index]
+                            periodsLeft = queries.getPeriodsLeftByID(index)
+                            if periodsLeft > 0:
+                                mysqlUpdates.updatePeriodForCourseSection(index, section.id)
+                                periodsLeft -= 1
+                                mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
+                                posPeriods.remove(index)
+                                noMatch = False
+                                break
+                else :
+                    print("conflict unavoidable")
+
+        # else: 
+        #     posPeriods = [1, 2, 3, 4, 5, 6]
+        #     for section in sections:
+        #         if queries.getPeriodFromCourseSectionID is None:
+        #             mentorId = queries.getMentorIDByCourseSection(section.id)
+        #             noMatch = True
+        #             posPeriods = set(posPeriods) - set(checkMentorEnrolledPeriods(mentorId))
+        #             posPeriods = list(posPeriods)
+        #             if len(posPeriods) > 0:
+        #                     while noMatch:
+        #                         index = posPeriods[randint(0, len(posPeriods)-1)]
+        #                         period = periods[index]
+        #                         periodsLeft = queries.getPeriodsLeftByID(index)
+        #                         if periodsLeft > 0:
+        #                             mysqlUpdates.updatePeriodForCourseSection(index, section.id)
+        #                             periodsLeft -= 1
+        #                             mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
+        #                             posPeriods.remove(index)
+        #                             noMatch = False
+        #                             break
+        #             else :
+        #                 print("conflict unavoidable")
+        #     for section in arrange:
+        #         if queries.getPeriodFromCourseSectionID is None:
+        #             mentorId = queries.getMentorIDByCourseSection(section.id)
+        #             noMatch = True
+        #             posPeriods = set(posPeriods) - set(checkMentorEnrolledPeriods(mentorId))
+        #             posPeriods = list(posPeriods)
+        #             if len(posPeriods) > 0:
+        #                     while noMatch:
+        #                         index = posPeriods[randint(0, len(posPeriods)-1)]
+        #                         period = periods[index]
+        #                         periodsLeft = queries.getPeriodsLeftByID(index)
+        #                         if periodsLeft > 0:
+        #                             mysqlUpdates.updatePeriodForCourseSection(index, section.id)
+        #                             periodsLeft -= 1
+        #                             mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
+        #                             posPeriods.remove(index)
+        #                             noMatch = False
+        #                             break
+        #             else :
+        #                 print("conflict unavoidable")
+        
+
+
+        # specificConflicts = conflicts[str(course.id)] #gets dictionary of all possible values 
+        # print(specificConflicts)
+        # specificConflictsSorted = sorted(specificConflicts.items(), key=lambda x: x[1], reverse=True)
+        #len(sections)
+        
+
+        #if course.duplicates_num < settings.periods:
+            # noMatch = True
+            # posPeriods = [1, 2, 3, 4, 5, 6]
+            # posPeriods = set(posPeriods) - set(checkMentorEnrolledPeriods(mentor_id))
+            # posPeriods = list(posPeriods)
+            # if len(posPeriods) > 0:
+            #         while noMatch:
+            #             index = posPeriods[randint(0, len(posPeriods)-1)]
+            #             period = periods[index]
+            #             periodsLeft = queries.getPeriodsLeftByID(index)
+            #             if periodsLeft > 0:
+            #                 mysqlUpdates.updatePeriodForCourseSection(index, course_section.id)
+            #                 periodsLeft -= 1
+            #                 mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
+            #                 noMatch = False
+            #                 break
+            # else :
+            #     print("conflict unavoidable")
     print("checking to see conflicts")
     
