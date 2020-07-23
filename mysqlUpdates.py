@@ -41,10 +41,18 @@ def updateDuplicates(duplicate, id):
     query = ("UPDATE course_conflicts SET duplicates='%s' WHERE id=%s" %(duplicate, id))
     cursor = runMySQLOperation(query)
 
-def setDuplicates(duplicate, id):
-    query = ("UPDATE course_conflicts SET duplicates='%s' WHERE id=%s" %(duplicate, id))
+def setDuplicates(duplicate, duplicateNum, id):
+    query = ("UPDATE course_conflicts SET duplicates='%s', duplicates_num=%s WHERE id=%s" %(duplicate, duplicateNum, id))
     cursor = runMySQLOperation(query)
 
 def clearDuplicates():
     query = ("UPDATE course_conflicts SET duplicates = NULL WHERE duplicates is not null")
+    cursor = runMySQLOperation(query)
+
+def clearDuplicateNums():
+    query = ("UPDATE course_conflicts SET duplicates_num = 0")
+    cursor = runMySQLOperation(query)
+
+def incrementDuplicateNum(courseId):
+    query = ("UPDATE course_conflicts SET duplicates_num = duplicates_num + 1 WHERE id = %s" %(courseId))
     cursor = runMySQLOperation(query)

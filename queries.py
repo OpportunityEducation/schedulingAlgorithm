@@ -2,7 +2,7 @@
 import mysql.connector
 
 import classes
-from classes import Course, Student, Mentor, RankedCourse, EnrolledCourse, CourseSection, Classroom
+from classes import Course, Student, Mentor, RankedCourse, EnrolledCourse, CourseSection, Classroom, CourseConflict
 from classes import UnformattedPreference, UnformattedQualification, MentorQualifiedClass, CommitmentBlock
 from usefulFunctions import runMySQLOperation
 
@@ -354,9 +354,18 @@ def getStudentsEnrolledByCourseName(name):
         names.append(name)
     return names
 
-def getDuplicatesByCourse(id):
+def getCourseConflictsByCourse(id):
     query = ("SELECT * from course_conflicts WHERE id=%s" %(id))
     cursor = runMySQLOperation(query)
-    for (id, dupes) in cursor:
-        return dupes
+    for (id, dupes, dupeNum) in cursor:
+        return CourseConflict(id, dupes, dupeNum)
+
+
+def getAllNonzeroDuplicates():
+    query = ("SELECT * FROM course_conflicts WHERE duplicates_num > 0")
+    cursor = runMySQLOperation(query)
+    obj = []
+    for (id, dupes, dupeNum) in cursor:
+        obj.append(CourseConflict(id, dupes, dupeNum))
+    return obj
     

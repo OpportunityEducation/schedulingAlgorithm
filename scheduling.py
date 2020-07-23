@@ -1,21 +1,27 @@
 #responsbile for assigning class periods and classrooms
 
-import settings, inserts, queries, deletions, usefulFunctions, enrollment, random, mysqlUpdates
+import settings, inserts, queries, deletions, usefulFunctions, enrollment, random, mysqlUpdates, enrollment
 from random import randint
 from usefulFunctions import convertToMinutes
 
+global conflicts
+conflicts = dict()
 periods = []
 limitedMentors = []
 
 #init
 def init():
     #NEED TO INIT AMOUNT PER PERIODS (COURSE SECTION COUNT/SETTINGS.NUMBER OF PERIODS)
-    global periods, limitedMentors 
+    global periods, limitedMentors, conflicts 
     periods = queries.getAllPeriodTimeBlocks()
     limitedMentors = queries.getMentorIDsWithLimitedAvailability()
+    conflicts = enrollment.conflictDict
     print("init scheduling")
     remainingCourseSections = []
 
+    for i in range (1, settings.periods+1):
+        assignDuplicates(i)
+        
     #assign limited availability mentors first 
     for course_section in enrollment.allCourseSections:
         mentor_id = queries.getMentorIDByCourseSection(course_section.id)
@@ -31,8 +37,9 @@ def init():
 
     for i in range(1, settings.periods+1):
         period = queries.getCourseSectionsByPeriod(i)
-        checkConflicts(period)
+        #checkConflicts(period)
 
+    print("assigning periods")
     #then assign rooms to sections by period
     for i in range (1, settings.periods+1):
         sections = queries.getCourseSectionsByPeriod(i)
@@ -44,7 +51,6 @@ def init():
 
 #checks availability and if matching, groups 
 def groupAvailability(users): #, isMentor):
-    print("checking availabilty")
     ids = queries.getAllStudentIDsWithCommitments()
     ids = ids & set(users)
     blocks = queries.getAllDistinctStudentCommitmentTimeBlocks()
@@ -66,7 +72,6 @@ def assignPeriod(mentor_id, course_section, isLimited):
     if len(posPeriods) > 0:
         if(isLimited):
             limits = queries.getMentorAvailabilityByID(mentor_id)
-            print("assigning restricted mentor")
             while True:
                 index = posPeriods[randint(0, len(posPeriods)-1)]
                 period = periods[index]
@@ -106,6 +111,8 @@ def assignRoomByPeriod(sections, period):
         print("CSP must be in 340 which has id 5")
         cspSection = next((x for x in sections if x.course_id == 23), None)
         mysqlUpdates.assignCourseSectionToRoom(cspSection.id,cspSection.section_number, 5)
+
+    #all others
     unfitSections = []
     for section in sections:
         if section.course_id != 23: #OMAHA ONLY: CSP case
@@ -123,12 +130,8 @@ def assignRoomByPeriod(sections, period):
                     break
             if assignedRoom == 0:
                 unfitSections.append(section)
-                if section.id == 2:
-                    print("********" )
             else: 
                 mysqlUpdates.assignCourseSectionToRoom(section.id, section.section_number, assignedRoom)
-    #bookedRooms = set(queries.getRoomsBookedByPeriod(period))
-    
     for section in unfitSections:
         openRooms = list(set(queries.getAllRooms()) - set(queries.getRoomsBookedByPeriod(period)))
         openRoomsWithCapacity = dict()
@@ -142,7 +145,6 @@ def assignRoomByPeriod(sections, period):
                 assignedRoom = int(key)
                 break
         if assignedRoom == 0:
-            print("oh shoot there was no class of capacity for this section")
             print("needed capacity %s" %(section.students_enrolled))
         else: 
             mysqlUpdates.assignCourseSectionToRoom(section.id, section.section_number, assignedRoom)
@@ -198,6 +200,15 @@ def findAvailableRooms(course_type, course_section):
     #print("avialable %s" %(availableRooms))
     return availableRooms
 
-def checkConflicts(period):
+
+
+def assignDuplicates(period):
+    global conflicts
+    duplicates = queries.getAllNonzeroDuplicates()
+    duplicates.sort(key=lambda x: x.duplicates_num, reverse=True)
+    for course in duplicates:
+        sections = queries.getCourseSectionsByCourseID(course.id)
+        specificConflicts = conflicts[str(course.id)]
+        specificConflicts.sort(specificConflicts.items(), key=lambda x: x[1], reverse=True)
     print("checking to see conflicts")
     

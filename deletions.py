@@ -11,7 +11,6 @@ def deleteStudentCoursePreference(studentID, courseID, id):
 def truncateTable(table):
     query = ("TRUNCATE %s" %(table))
     cursor = runMySQLOperation(query)
-    print("%s deleted" %(table))
 
 def deleteMentorQualifiedCourse(mentor_id, course_id):
     query = ("DELETE FROM course_enrollment WHERE course_id=%s and user_id=%s and is_mentor=1" %(course_id, mentor_id))

@@ -5,8 +5,9 @@ from random import shuffle
 from usefulFunctions import shuffleArray
 from scheduling import groupAvailability
 
-global allCourseSections
+global allCourseSections, conflictDict, duplicates_num
 duplicates = ""
+duplicates_num = 0
 courses = []
 courseSectionId = 0
 cs1 = []
@@ -203,35 +204,28 @@ def getMentorWithLeastCourseSections(mentors):
 
 #get conflicts for scheduling
 def getBiggestConflicts():
-    global duplicates
+    global duplicates, conflictDict, duplicates_num
     courses = queries.getAllCourses()
-    print("NUM COURSES: %s" %(len(courses)))
     conflictDict = dict()
     for i in range(len(courses)):
         course = courses[i]
-        print("CONFLICTS FOR COURSE: %s"%(course.name))
         conflicts = dict()
-        duplicates = queries.getDuplicatesByCourse(course.id)
+        course_conflict = queries.getCourseConflictsByCourse(course.id)
+        duplicates = course_conflict.duplicates
+        duplicates_num = course_conflict.duplicates_num
         for j in range(i+1, len(courses)): #fix this part !!!!!
             if j < len(courses):
                 other = courses[j]
                 conflictNum = getOverlap(course, other)
                 if conflictNum != 0:
                     conflicts[str(other.id)] = conflictNum
-            # capacity = queries.getCapacityByRoomId(openRoomId)
-            # openRoomsWithCapacity[str(other.id)] = capacity
-        conflicts = sorted(conflicts.items(), key=lambda x: x[1], reverse=True)
-        print(course.id)
-        print(duplicates)
-        mysqlUpdates.setDuplicates(duplicates, course.id)
-        print("***")
-        conflictDict[str(course.id)] = conflicts #sorted(conflicts.items(), key=lambda x: x[1], reversed=True)
-        #conflicts = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
+        mysqlUpdates.setDuplicates(duplicates, duplicates_num, course.id)
+        conflictDict[str(course.id)] = sorted(conflicts.items(), key=lambda x: x[1], reverse=True)
 
 
 #get exact overlap via roster
 def getOverlap(course, otherCourse):
-    global duplicates
+    global duplicates, duplicates_num
     courseStudents = queries.getStudentsEnrolledByCourseName(course.name)
     otherStudents = queries.getStudentsEnrolledByCourseName(otherCourse.name)
     conflicts = 0
@@ -239,16 +233,20 @@ def getOverlap(course, otherCourse):
         if name in otherStudents:
             conflicts += 1
     if conflicts/len(courseStudents) > .9 or conflicts/len(otherStudents) > .9:
-        print("found duplicate")
-        if duplicates is None:
-            duplicates = str(otherCourse.id)
-        else :
-            duplicates += "," + str(otherCourse.id)
-        otherDuplicates = queries.getDuplicatesByCourse(otherCourse.id)
-        if otherDuplicates is None:
-            mysqlUpdates.updateDuplicates(course.id, otherCourse.id)
-        else :
-            otherDuplicates += "," + str(course.id)
-            mysqlUpdates.updateDuplicates(otherDuplicates, otherCourse.id)
-    # print(courseStudents)
+        duplicates = updateCourseConflicts(otherCourse.id, duplicates, -1)
+        otherCourseConflicts = queries.getCourseConflictsByCourse(otherCourse.id)
+        updateCourseConflicts(course.id, otherCourseConflicts.duplicates, otherCourse.id)
+        duplicates_num += 1
     return conflicts
+
+
+def updateCourseConflicts(courseId, newDuplicates, updateId):
+    if newDuplicates is None:
+        newDuplicates = str(courseId)
+    else :
+        newDuplicates += "," + str(courseId)
+    if updateId != -1:
+        mysqlUpdates.incrementDuplicateNum(updateId)
+        mysqlUpdates.updateDuplicates(newDuplicates, updateId)
+    return newDuplicates
+

@@ -96,3 +96,9 @@ class Classroom:
         self.name = name
         self.capacity = capacity
         self.classroom_type_id = classroom_type_id
+
+class CourseConflict:
+    def __init__(self, id, duplicates, duplicates_num):
+        self.id = id
+        self.duplicates = duplicates
+        self.duplicates_num = duplicates_num
