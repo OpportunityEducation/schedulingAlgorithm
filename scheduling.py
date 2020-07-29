@@ -30,10 +30,12 @@ def init():
             remainingCourseSections.append(course_section)
 
     #then assign rest of mentors
+    print("assigning mentors")
     for course_section in remainingCourseSections:
         if course_section.class_period == 0: 
             mentor_id = queries.getMentorIDByCourseSection(course_section.id)
             assignPeriod(mentor_id, course_section, False)
+    print("done assigning mentors")
 
     for i in range(1, settings.periods+1):
         period = queries.getCourseSectionsByPeriod(i)
@@ -207,42 +209,7 @@ def assignDuplicates():
     duplicates = queries.getAllNonzeroDuplicates()
     duplicates.sort(key=lambda x: x.duplicates_num, reverse=True)
     for course in duplicates:
-        arrange = []
-        sections = queries.getCourseSectionsByCourseID(course.id)
-        #arrange.append(sections)
-        dupes = queries.getCourseConflictsByCourse(course.id)
-        problems = (dupes.duplicates).split(",")
-        for problem in problems:
-            arrange.append(queries.getCourseSectionsByCourseID(problem))
-        posPeriods = [1, 2, 3, 4, 5, 6]
-        if len(arrange) + len(sections) > 6:
-            print("conflicts are unavoidable as there are more than 6 duplicates")
-            posPeriods = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6]
-            sections.append(arrange)
-        else: 
-            arrange.append(sections)
-            sections = arrange
-            
-        for section in sections:
-            if queries.getPeriodFromCourseSectionID == 0:
-                mentorId = queries.getMentorIDByCourseSection(section.id)
-                noMatch = True
-                posPeriods = set(posPeriods) - set(checkMentorEnrolledPeriods(mentorId))
-                posPeriods = list(posPeriods)
-                if len(posPeriods) > 0:
-                        while noMatch:
-                            index = posPeriods[randint(0, len(posPeriods)-1)]
-                            period = periods[index]
-                            periodsLeft = queries.getPeriodsLeftByID(index)
-                            if periodsLeft > 0:
-                                mysqlUpdates.updatePeriodForCourseSection(index, section.id)
-                                periodsLeft -= 1
-                                mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
-                                posPeriods.remove(index)
-                                noMatch = False
-                                break
-                else :
-                    print("conflict unavoidable")
+        
 
     print("checking to see conflicts")
     

@@ -71,27 +71,31 @@ def balanceSections():
     dealWithDuplicates()
 
     #then all the rest of the course sections
+    duplicateCourses = queries.getAllNonzeroDuplicates()
     for section in allCourseSections:
-        if (section.students_enrolled > settings.maxClassSize):
-            #print("splitting needed")
-            courseSectionId = int(courseSectionId) + 1
-            inserts.createCourseSection(courseSectionId, section.course_id, 2)
-            courseSectionId = int(courseSectionId) + 1
-            # if(section.students_enrolled > (settings.maxClassSize*2)): #create three sections
-            #     inserts.createCourseSection(courseSectionId, section.course_id, 3)
-            splitSection(section.course_id)
-        else :
-            addSectionFormattedOutput(section.course_id, section)
+        if section.course_id not in duplicateCourses:
+            if (section.students_enrolled > settings.maxClassSize):
+                #print("splitting needed")
+                courseSectionId = int(courseSectionId) + 1
+                inserts.createCourseSection(courseSectionId, section.course_id, 2)
+                courseSectionId = int(courseSectionId) + 1
+                # if(section.students_enrolled > (settings.maxClassSize*2)): #create three sections
+                #     inserts.createCourseSection(courseSectionId, section.course_id, 3)
+                splitSection(section.course_id)
+            # else :
+            #     addSectionFormattedOutput(section.course_id, section)
     allCourseSections = queries.getAllCourseSections()
 
-def addSectionFormattedOutput(courseId, section):
-    course = queries.getCourseByID(courseId)
+def addSectionFormattedOutput(section):
+    course = queries.getCourseByID(section.course_id)
     studentIDs = queries.getStudentIDsEnrolledByCourseSection(section.id)
+    mentorId = queries.getMentorIDByCourseSection(section.id)
+    mentor = queries.getMentorByID(mentorId)
     students = []
     for studentID in studentIDs:
         students.append(queries.getStudentById(studentID))
     for student in students:
-        inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, "TBA", 1)
+        inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, mentor.name, section.section_number)
 
 def splitSection(courseId):
     #("splitting section of class %s" %(courseId))
@@ -126,11 +130,11 @@ def splitSection(courseId):
         mysqlUpdates.updateCourseEnrollment(student.id, courseSections[0].id, courseSections[1].id)
 
     #add into formatted output
-    tba = queries.getMentorByName('TBA')
-    for student in cs1:
-        inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, tba, 1)
-    for student in cs2:
-        inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, tba, 2)
+    # tba = queries.getMentorByName('TBA')
+    # for student in cs1:
+    #     inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, tba, 1)
+    # for student in cs2:
+    #     inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, tba, 2)
 
     # if len(courseSections) == 2: #split two ways
     #     if len(females) < 4: #enroll all girls in one class 
@@ -275,8 +279,9 @@ def dealWithDuplicates():
     print("dealing with duplicates")
     dealtWithIDs = []
     duplicateCourses = queries.getAllNonzeroDuplicates()
+    for dv in duplicateCourses:
+        print(dv.id)
     duplicateCourses.sort(key=lambda x: x.duplicates_num, reverse=True)
-    print(duplicateCourses)
 
     #do classes that are self contained duplicates then do rest of duplicates
     for i in range (2):
@@ -299,6 +304,7 @@ def dealWithDuplicates():
                 # print("DUPLICATE ROSTER")
                 # print(duplicateRoster)
                 # print("***************")
+                duplicateSectionsMales = 0
                 if len(duplicateRoster) > settings.maxDuplicateClassSize:
                     print("more students in duplicate class than possible in one section; splitting")
                     duplicateInfo = splitDuplicate(duplicateRoster, enrolledIn, noSizeRun)
@@ -308,13 +314,15 @@ def dealWithDuplicates():
                     # print(duplicateSections)
                     # print("***************")
                 else:
-                    duplicateSections = duplicateRoster
-                    duplicateSectionsMales = 0
-                    for studentId in duplicateSections:
+                    duplicateSections = [duplicateRoster]
+                    for studentId in duplicateSections[0]:
                         student = queries.getStudentById(studentId)
                         if student.gender == 'M':
                             duplicateSectionsMales += 1
+                    duplicateSectionsMales = [duplicateSectionsMales]
                 for problem in problemSections:
+                    if problem.course_id not in dealtWithIDs:
+                        enrollDuplicates(problem, duplicateSections, duplicateSectionsMales)
                     dealtWithIDs.append(problem.course_id)
 
 def getDuplicateRoster(duplicateSections):
@@ -351,7 +359,7 @@ def splitDuplicate(roster, parentRoster, isNotSmallClass): #, parentCourseId): #
     splitRosterMales = [0 for _ in range(numSections)]
     for studentId in roster:
         if not isNotSmallClass:
-            if not studentId in parentRoster:
+            if studentId not in parentRoster:
                 student = queries.getStudentById(studentId)
                 if student.gender == 'M':
                     males.append(student.id)
@@ -403,32 +411,43 @@ def splitDuplicate(roster, parentRoster, isNotSmallClass): #, parentCourseId): #
                 splitRosterMales[i%len(splitRoster)] += 1
             for i in range(len(nonMales)):
                 splitRoster[i%len(splitRoster)].append(nonMales.pop(0))
-
+   
+    print("SPLIT ROSTER")
+    print(splitRoster)
+    print(splitRosterMales)
     return [splitRoster, splitRosterMales]
 
 
-def enrollDuplicates(duplicateSections, duplicateSectionAssignments, duplicateSectionsMale):
+def enrollDuplicates(duplicateSection, duplicateSectionAssignments, duplicateSectionsMale):
     global courseSectionId
     print("enrolling duplicates")
-    for sectionId in duplicateSections:
-        section = queries.getCourseSectionByID(sectionId)
-        students = queries.getStudentIDsEnrolledByCourseSection(sectionId)
-        unassignedStudentIds = []
+    print(duplicateSectionsMale)
+    section = duplicateSection
+    #section = queries.getCourseSectionByID(problem.id)
+    students = queries.getStudentIDsEnrolledByCourseSection(section.id)
+    unassignedStudentIds = []
 
-        #create new section
-        courseSections = [queries.getCourseSectionByID(sectionId)]
-        for i in range (2, len(duplicateSectionAssignments)):
-            courseSectionId = int(courseSectionId) + 1
-            inserts.createCourseSection(courseSectionId, section.course_id, i)
-            courseSection = queries.getCourseSectionByID(courseSectionId)
-            courseSections.append(courseSection)
+    for duplicateRoster in duplicateSectionAssignments:
+        for i in range (len(duplicateRoster)):
+            if duplicateRoster[i] not in students:
+                unassignedStudentIds.append(duplicateRoster[i])
 
-        #add in maintaining gender ratio later
-        for duplicateRoster in duplicateSectionAssignments:
-            for studentId in duplicateRoster:
-                if studentId not in students:
-                    unassignedStudentIds.append(studentId)
+    numSections = int(len(students)/settings.maxClassSize)
+    if len(students)%settings.maxClassSize > 0:
+        numSections += 1
 
+    if numSections > len(duplicateSectionAssignments):
+        print("need extra section")
+        splitSections = [[] for _ in range(numSections-len(duplicateSectionAssignments))]
+        splitSectionMales = [0 for _ in range(numSections-len(duplicateSectionAssignments))]
+        for i in range(len(unassignedStudentIds)):
+            splitSections[i%len(splitSections)].append(unassignedStudentIds.pop(0))
+            splitSectionMales[i%len(splitSections)] += 1
+        for ss in splitSections:
+            duplicateSectionAssignments.append(ss)
+        for sm in splitSectionMales:
+            duplicateSectionsMale.append(sm)
+    else:
         #assign unassigned students (non duplicates)
         unassignedStudentIds = shuffleArray(unassignedStudentIds, 5)
         for i in range(len(unassignedStudentIds)):
@@ -436,17 +455,25 @@ def enrollDuplicates(duplicateSections, duplicateSectionAssignments, duplicateSe
             duplicateSectionAssignments[i%len(duplicateSectionAssignments)].append(studentId)
             if queries.getStudentById(studentId).gender == 'M':
                 duplicateSectionsMale[i%len(duplicateSectionAssignments)] += 1
-        
-        #NOW update sections and enroll students
-        for courseSection in courseSections:
-            course = queries.getCourseByID(courseSection.course_id)
-            dsa = duplicateSectionAssignments[courseSection.section_number+1]
-            mysqlUpdates.updateCourseSectionEnrollment(courseSection.id, len(dsa), duplicateSectionsMale[courseSection.section_number+1])
+    
+    #create new sections
+    courseSections = [queries.getCourseSectionByID(section.id)]
+    for i in range (2, numSections):
+        courseSectionId = int(courseSectionId) + 1
+        inserts.createCourseSection(courseSectionId, section.course_id, i)
+        courseSection = queries.getCourseSectionByID(courseSectionId)
+        courseSections.append(courseSection)
+    
+    #NOW update sections and enroll students
+    for courseSection in courseSections:
+        course = queries.getCourseByID(courseSection.course_id)
+        dsa = duplicateSectionAssignments[courseSection.section_number-1]
+        mysqlUpdates.updateCourseSectionEnrollment(courseSection.id, len(dsa), duplicateSectionsMale[courseSection.section_number-1])
 
-            #enroll students, add into formatted output
-            tba = queries.getMentorByName('TBA')
-            for studentId in dsa:
-                mysqlUpdates.updateCourseEnrollment(studentId, courseSections[0].id, courseSection.id)
-                student = queries.getStudentById(studentId)
-                inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, tba, courseSection.section_number)
+        #enroll students, add into formatted output
+        tba = queries.getMentorByName('TBA')
+        for studentId in dsa:
+            mysqlUpdates.updateCourseEnrollment(studentId, courseSections[0].id, courseSection.id)
+            student = queries.getStudentById(studentId)
+            #inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, tba, courseSection.section_number)
   

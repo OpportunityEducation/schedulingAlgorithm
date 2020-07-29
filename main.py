@@ -41,9 +41,9 @@ enrollment.balanceSections()
 enrollment.matchMentors()
 print("completed enrollment")
 
-#get course conflicts for scheduling purposes
-#enrollment.getBiggestConflicts()
-print("found conflicts")
+allCourseSections = queries.getAllCourseSections()
+for courseSection in allCourseSections:
+    enrollment.addSectionFormattedOutput(courseSection)
 
 #schedule course sections 
 scheduling.init()
