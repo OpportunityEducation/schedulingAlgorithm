@@ -228,7 +228,6 @@ def getBiggestConflicts():
                 if conflictNum != 0:
                     conflicts[str(other.id)] = conflictNum
         mysqlUpdates.setDuplicates(duplicates, duplicates_num, course.id)
-        print(duplicates)
         conflictDict[str(course.id)] = conflicts
 
 
@@ -249,9 +248,9 @@ def getOverlap(course, otherCourse):
             if studentId in otherStudentIds:
                 conflicts += 1
         if conflicts/len(courseStudentIds) > .9 or conflicts/len(otherStudentIds) > .9:
-            print("it's a duplicate")
+            # print("it's a duplicate")
             duplicates = updateCourseConflicts(otherCourse.id, duplicates, -1)
-            print(duplicates)
+            # print(duplicates)
             otherCourseConflicts = queries.getCourseConflictsByCourse(otherCourse.id)
             updateCourseConflicts(course.id, otherCourseConflicts.duplicates, otherCourse.id)
             duplicates_num += 1
@@ -293,11 +292,9 @@ def dealWithDuplicates():
                 dupes = queries.getCourseConflictsByCourse(course.id)
                 problemIDs = (dupes.duplicates).split(",")
                 for problemID in problemIDs:
-                    newProblems = queries.getCourseSectionsByCourseID(problemID)
-                    for prob in newProblems:
-                        problemSections.append(prob)
-                for sect in parentSection:
-                    problemSections.append(sect)
+                    #newProblems = queries.getCourseSectionsByCourseID(problemID)
+                    problemSections += queries.getCourseSectionsByCourseID(problemID)
+                problemSections += parentSection
                 print(problemSections)
                 duplicateRoster = list(getDuplicateRoster(problemSections))
                 print("DUPLICATE ROSTER")
@@ -313,6 +310,11 @@ def dealWithDuplicates():
                     print("***************")
                 else:
                     duplicateSections = duplicateRoster
+                    duplicateSectionsMales = 0
+                    for studentId in duplicateSections:
+                        student = queries.getStudentById(studentId)
+                        if student.gender == 'M':
+                            duplicateSectionsMales += 1
                 for problem in problemSections:
                     dealtWithIDs.append(problem.course_id)
 
@@ -324,10 +326,10 @@ def getDuplicateRoster(duplicateSections):
     # print("************")
     for section in duplicateSections:
         students = queries.getStudentIDsEnrolledByCourseSection(section.id)
-        allRosters.append(students)
         # course = queries.getCourseByID(section.course_id)
         # roster = queries.getStudentsEnrolledByCourseName(course.name)
-        # allRosters.append(roster)
+        allRosters.append(students)
+    print("ALL ROSTERS")
     print(allRosters)
     # for studentName in allRosters:
     #     student = queries.getStudentByName(studentName)
@@ -340,9 +342,8 @@ def getDuplicateRoster(duplicateSections):
             if j < len(allRosters):
                 for student in checkThis:
                     if student in allRosters[j]:
-                        print("got here ")
                         duplicateRoster.append(student)
-    return set(duplicateRoster) # <-- set of all names in multiple duplicates
+    return set(duplicateRoster) # <-- set of all ids in multiple duplicates
 
 
 def splitDuplicate(roster, parentRoster, isNotSmallClass): #, parentCourseId): #roster contains all names of students
@@ -350,7 +351,7 @@ def splitDuplicate(roster, parentRoster, isNotSmallClass): #, parentCourseId): #
     males = []
     nonMales = []
     smallRoster = []
-    numSections = len(roster) 
+    numSections = int(len(roster)/settings.maxDuplicateClassSize)
     if len(roster)%settings.maxDuplicateClassSize > 0:
         numSections += 1
     splitRoster = [[] for _ in range(numSections)]
@@ -364,14 +365,13 @@ def splitDuplicate(roster, parentRoster, isNotSmallClass): #, parentCourseId): #
                 else:
                     nonMales.append(student)
         else:
-            if not studentId in parentRoster:
-                student = queries.getStudentById(studentId)
-                if student.gender == 'M':
-                    males.append(student)
-                else:
-                    nonMales.append(student)
+            student = queries.getStudentById(studentId)
+            if student.gender == 'M':
+                males.append(student)
+            else:
+                nonMales.append(student)
 
-
+    #this is only for duplicates with class size less than max class size (no splitting)
     if not isNotSmallClass:
         for student in parentRoster:
             if student in roster:
