@@ -9,6 +9,8 @@ def init():
     minClassSize = 12
     global maxClassSize
     maxClassSize = 16
+    global maxDuplicateClassSize
+    maxClassSize = 14
     global periods
     periods = 6
     # global typenum

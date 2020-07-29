@@ -19,7 +19,6 @@ cs2M = 0
 def init(studentList):
     allCourseSections = []
     getRequestedCourses(studentList)
-    #getBiggestConflicts()
     enroll(studentList, 0)
 
 #first find all courses that have been requested 
@@ -63,9 +62,15 @@ def enrollStudent(section, student):
 
 #split sections and balance ratio if necessary
 def balanceSections():
-    global courseSectionId, allCourseSections
+    global courseSectionId, allCourseSections, duplicates
     print("balancing sections")
     allCourseSections = queries.getAllCourseSections()
+
+    #deal with the duplicates first 
+    getBiggestConflicts()
+    dealWithDuplicates()
+
+    #then all the rest of the course sections
     for section in allCourseSections:
         if (section.students_enrolled > settings.maxClassSize):
             #print("splitting needed")
@@ -210,8 +215,10 @@ def getBiggestConflicts():
     conflictDict = dict()
     for i in range(len(courses)):
         course = courses[i]
+        # print(course)
         conflicts = dict()
         course_conflict = queries.getCourseConflictsByCourse(course.id)
+        # print(course_conflict)
         duplicates = course_conflict.duplicates
         duplicates_num = course_conflict.duplicates_num
         for j in range(i+1, len(courses)): #fix this part !!!!!
@@ -221,24 +228,39 @@ def getBiggestConflicts():
                 if conflictNum != 0:
                     conflicts[str(other.id)] = conflictNum
         mysqlUpdates.setDuplicates(duplicates, duplicates_num, course.id)
+        print(duplicates)
         conflictDict[str(course.id)] = conflicts
 
 
 #get exact overlap via roster
 def getOverlap(course, otherCourse):
     global duplicates, duplicates_num
-    courseStudents = queries.getStudentsEnrolledByCourseName(course.name)
-    otherStudents = queries.getStudentsEnrolledByCourseName(otherCourse.name)
-    conflicts = 0
-    for name in courseStudents:
-        if name in otherStudents:
-            conflicts += 1
-    if conflicts/len(courseStudents) > .9 or conflicts/len(otherStudents) > .9:
-        duplicates = updateCourseConflicts(otherCourse.id, duplicates, -1)
-        otherCourseConflicts = queries.getCourseConflictsByCourse(otherCourse.id)
-        updateCourseConflicts(course.id, otherCourseConflicts.duplicates, otherCourse.id)
-        duplicates_num += 1
-    return conflicts
+    courseSection = queries.getCourseSectionsByCourseID(course.id)
+    if len(courseSection) == 0:
+        return 0
+    courseStudentIds = queries.getStudentIDsEnrolledByCourseSection(courseSection[0].id)
+    otherSection = queries.getCourseSectionsByCourseID(otherCourse.id)
+    if len(otherSection) == 0:
+        return 0
+    otherStudentIds = queries.getStudentIDsEnrolledByCourseSection(otherSection[0].id)
+    if len(courseStudentIds) > 0:
+        print("checking conflicts")
+        conflicts = 0
+        for studentId in courseStudentIds:
+            if studentId in otherStudentIds:
+                conflicts += 1
+        print(conflicts)
+        if conflicts/len(courseStudentIds) > .9 or conflicts/len(otherStudentIds) > .9:
+            print("it's a duplicate")
+            duplicates = updateCourseConflicts(otherCourse.id, duplicates, -1)
+            print(duplicates)
+            otherCourseConflicts = queries.getCourseConflictsByCourse(otherCourse.id)
+            updateCourseConflicts(course.id, otherCourseConflicts.duplicates, otherCourse.id)
+            duplicates_num += 1
+            return conflicts
+    else:
+        print("NOT LONG ENOUGH")
+    return 0
 
 
 def updateCourseConflicts(courseId, newDuplicates, updateId):
@@ -250,4 +272,90 @@ def updateCourseConflicts(courseId, newDuplicates, updateId):
         mysqlUpdates.incrementDuplicateNum(updateId)
         mysqlUpdates.updateDuplicates(newDuplicates, updateId)
     return newDuplicates
+
+
+def dealWithDuplicates():
+    print("dealing with duplicates")
+    dealtWithIDs = []
+    duplicateCourses = queries.getAllNonzeroDuplicates()
+    duplicateCourses.sort(key=lambda x: x.duplicates_num, reverse=True)
+    print(duplicateCourses)
+    for course in duplicateCourses:
+        print("checking duplicate course")
+        parentSection = queries.getCourseSectionsByCourseID(course.id)
+        problemSections = []
+        dupes = queries.getCourseConflictsByCourse(course.id)
+        problemIDs = (dupes.duplicates).split(",")
+        for problemID in problemIDs:
+            problemSections.append(queries.getCourseSectionsByCourseID(problemID))
+        duplicateRoster = getDuplicateRoster(problemSections.append(parentSection))
+        if len(duplicateRoster) > settings.maxClassSize:
+            print("more students in duplicate class than possible in one section; splitting")
+            duplicateInfo = splitDuplicate(duplicateRoster)
+            duplicateSections = duplicateInfo[0]
+            duplicateSectionsMales = duplicateInfo[1]
+
+
+def getDuplicateRoster(duplicateSections):
+    allRosters = []
+    for section in duplicateSections:
+        course = queries.getCourseByID(section.course_id)
+        roster = queries.getStudentsEnrolledByCourseName(course.name)
+        allRosters.append(roster)
+    duplicateRoster = []
+    for i in range (len(allRosters)):
+        checkThis = allRosters[i]
+        for j in range (i+1, len(allRosters)):
+            if j < len(allRosters):
+                for student in checkThis:
+                    if student in allRosters[j]:
+                        duplicateRoster.append(student)
+    return set(duplicateRoster) # <-- set of all names in multiple duplicates
+
+
+def splitDuplicate(roster): #roster contains all names of students
+    print("splitting duplicate")
+    males = []
+    nonMales = []
+    numSections = len(roster) 
+    if len(roster)%settings.maxDuplicateClassSize > 0:
+        numSections += 1
+    splitRoster = [[] for _ in range(numSections)]
+    splitRosterMales = [0 for _ in range(numSections)]
+    for studentName in roster:
+        student = queries.getStudentByName(studentName)
+        if student.gender == 'M':
+            males.append(student)
+        else:
+            nonMales.append(student)
+
+    #assignThese = [] => if generalizing logic parts
+    #***** TO DO: Basis of ratio not number ******
+    if len(males) < 4:
+        splitRoster[0] = males
+        splitRosterMales[0] = len(males)
+        nonMales = shuffleArray(nonMales)
+        for i in range(len(males)):
+            for rosterNum in range (1, len(splitRoster)):
+                splitRoster[rosterNum].append(nonMales.pop(0))
+        for i in range(len(nonMales)):
+            splitRoster[i%len(splitRoster)].append(nonMales.pop(0))
+    elif len(nonMales) < 4:
+        splitRoster[0] = nonMales
+        for i in range(len(nonMales)):
+            for rosterNum in range (1, len(splitRoster)):
+                splitRoster[rosterNum].append(males.pop(0))
+                splitRosterMales[rosterNum] += 1
+        for i in range(len(males)):
+            splitRoster[i%len(splitRoster)].append(males.pop(0))
+            splitRosterMales[i%len(splitRoster)] += 1
+    else: 
+        adjustRatio(nonMales, males, "none")
+        for i in range(len(males)):
+            splitRoster[i%len(splitRoster)].append(males.pop(0))
+            splitRosterMales[i%len(splitRoster)] += 1
+        for i in range(len(nonMales)):
+            splitRoster[i%len(splitRoster)].append(nonMales.pop(0))
+    
+    return [splitRoster, splitRosterMales]
 

@@ -42,7 +42,7 @@ enrollment.matchMentors()
 print("completed enrollment")
 
 #get course conflicts for scheduling purposes
-enrollment.getBiggestConflicts()
+#enrollment.getBiggestConflicts()
 print("found conflicts")
 
 #schedule course sections 

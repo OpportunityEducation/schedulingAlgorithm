@@ -43,6 +43,7 @@ def updateDuplicates(duplicate, id):
 
 def setDuplicates(duplicate, duplicateNum, id):
     query = ("UPDATE course_conflicts SET duplicates='%s', duplicates_num=%s WHERE id=%s" %(duplicate, duplicateNum, id))
+    print("updating duplicates")
     cursor = runMySQLOperation(query)
 
 def clearDuplicates():
