@@ -29,7 +29,7 @@ def getStudentByName(name):
     for (id, name, gender, year, free_periods) in cursor:
         return Student(id, name, gender, year, free_periods)
 
-def getStudentByID(id):
+def getStudentById(id):
     query = ("SELECT * FROM student WHERE id=%s" %(id))
     cursor = runMySQLOperation(query)
     for (id, name, gender, year, free_periods) in cursor:
@@ -177,8 +177,8 @@ def getStudentEnrollmentByStudentID(id):
         enrolledCourses.append(EnrolledCourse(course_section_id, user_id))
     return enrolledCourses
 
-def getStudentIDsEnrolledByCourseSection(course_id):
-    query = ("SELECT * FROM course_enrollment WHERE course_section_id=%s and is_mentor=0" %(course_id))
+def getStudentIDsEnrolledByCourseSection(course_section_id):
+    query = ("SELECT * FROM course_enrollment WHERE course_section_id=%s and is_mentor=0" %(course_section_id))
     cursor = runMySQLOperation(query)
     ids = []
     for (user_id, course_section_id, is_mentor) in cursor:

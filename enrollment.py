@@ -89,7 +89,7 @@ def addSectionFormattedOutput(courseId, section):
     studentIDs = queries.getStudentIDsEnrolledByCourseSection(section.id)
     students = []
     for studentID in studentIDs:
-        students.append(queries.getStudentByID(studentID))
+        students.append(queries.getStudentById(studentID))
     for student in students:
         inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, "TBA", 1)
 
@@ -103,7 +103,7 @@ def splitSection(courseId):
     females = []
     nonFemales = []
     for studentID in studentIDs:
-        student = queries.getStudentByID(studentID)
+        student = queries.getStudentById(studentID)
         if student.gender == 'F':
             females.append(student)
         else :
@@ -244,12 +244,10 @@ def getOverlap(course, otherCourse):
         return 0
     otherStudentIds = queries.getStudentIDsEnrolledByCourseSection(otherSection[0].id)
     if len(courseStudentIds) > 0:
-        print("checking conflicts")
         conflicts = 0
         for studentId in courseStudentIds:
             if studentId in otherStudentIds:
                 conflicts += 1
-        print(conflicts)
         if conflicts/len(courseStudentIds) > .9 or conflicts/len(otherStudentIds) > .9:
             print("it's a duplicate")
             duplicates = updateCourseConflicts(otherCourse.id, duplicates, -1)
@@ -280,28 +278,61 @@ def dealWithDuplicates():
     duplicateCourses = queries.getAllNonzeroDuplicates()
     duplicateCourses.sort(key=lambda x: x.duplicates_num, reverse=True)
     print(duplicateCourses)
-    for course in duplicateCourses:
-        print("checking duplicate course")
-        parentSection = queries.getCourseSectionsByCourseID(course.id)
-        problemSections = []
-        dupes = queries.getCourseConflictsByCourse(course.id)
-        problemIDs = (dupes.duplicates).split(",")
-        for problemID in problemIDs:
-            problemSections.append(queries.getCourseSectionsByCourseID(problemID))
-        duplicateRoster = getDuplicateRoster(problemSections.append(parentSection))
-        if len(duplicateRoster) > settings.maxClassSize:
-            print("more students in duplicate class than possible in one section; splitting")
-            duplicateInfo = splitDuplicate(duplicateRoster)
-            duplicateSections = duplicateInfo[0]
-            duplicateSectionsMales = duplicateInfo[1]
 
+    #do classes that are self contained duplicates then do rest of duplicates
+    for i in range (2):
+        noSizeRun = False
+        if i == 1:
+            noSizeRun = True
+        for course in duplicateCourses:
+            print("checking duplicate course")
+            parentSection = queries.getCourseSectionsByCourseID(course.id)
+            enrolledIn = queries.getStudentIDsEnrolledByCourseSection(parentSection[0].id)
+            if (noSizeRun or len(enrolledIn) < settings.maxDuplicateClassSize) and parentSection[0].course_id not in dealtWithIDs:
+                problemSections = []
+                dupes = queries.getCourseConflictsByCourse(course.id)
+                problemIDs = (dupes.duplicates).split(",")
+                for problemID in problemIDs:
+                    newProblems = queries.getCourseSectionsByCourseID(problemID)
+                    for prob in newProblems:
+                        problemSections.append(prob)
+                for sect in parentSection:
+                    problemSections.append(sect)
+                print(problemSections)
+                duplicateRoster = list(getDuplicateRoster(problemSections))
+                print("DUPLICATE ROSTER")
+                print(duplicateRoster)
+                print("***************")
+                if len(duplicateRoster) > settings.maxDuplicateClassSize:
+                    print("more students in duplicate class than possible in one section; splitting")
+                    duplicateInfo = splitDuplicate(duplicateRoster, enrolledIn, noSizeRun)
+                    duplicateSections = duplicateInfo[0]
+                    duplicateSectionsMales = duplicateInfo[1]
+                    print("SECTIONS ASSIGNED")
+                    print(duplicateSections)
+                    print("***************")
+                else:
+                    duplicateSections = duplicateRoster
+                for problem in problemSections:
+                    dealtWithIDs.append(problem.course_id)
 
 def getDuplicateRoster(duplicateSections):
     allRosters = []
+    idRoster = []
+    # print("DUPLICATE SECTIONS")
+    # print(duplicateSections)
+    # print("************")
     for section in duplicateSections:
-        course = queries.getCourseByID(section.course_id)
-        roster = queries.getStudentsEnrolledByCourseName(course.name)
-        allRosters.append(roster)
+        students = queries.getStudentIDsEnrolledByCourseSection(section.id)
+        allRosters.append(students)
+        # course = queries.getCourseByID(section.course_id)
+        # roster = queries.getStudentsEnrolledByCourseName(course.name)
+        # allRosters.append(roster)
+    print(allRosters)
+    # for studentName in allRosters:
+    #     student = queries.getStudentByName(studentName)
+    #     idRoster.append(student.id)
+    # allRosters = idRoster
     duplicateRoster = []
     for i in range (len(allRosters)):
         checkThis = allRosters[i]
@@ -309,53 +340,77 @@ def getDuplicateRoster(duplicateSections):
             if j < len(allRosters):
                 for student in checkThis:
                     if student in allRosters[j]:
+                        print("got here ")
                         duplicateRoster.append(student)
     return set(duplicateRoster) # <-- set of all names in multiple duplicates
 
 
-def splitDuplicate(roster): #roster contains all names of students
+def splitDuplicate(roster, parentRoster, isNotSmallClass): #, parentCourseId): #roster contains all names of students
     print("splitting duplicate")
     males = []
     nonMales = []
+    smallRoster = []
     numSections = len(roster) 
     if len(roster)%settings.maxDuplicateClassSize > 0:
         numSections += 1
     splitRoster = [[] for _ in range(numSections)]
     splitRosterMales = [0 for _ in range(numSections)]
-    for studentName in roster:
-        student = queries.getStudentByName(studentName)
-        if student.gender == 'M':
-            males.append(student)
+    for studentId in roster:
+        if not isNotSmallClass:
+            if not studentId in parentRoster:
+                student = queries.getStudentById(studentId)
+                if student.gender == 'M':
+                    males.append(student)
+                else:
+                    nonMales.append(student)
         else:
-            nonMales.append(student)
+            if not studentId in parentRoster:
+                student = queries.getStudentById(studentId)
+                if student.gender == 'M':
+                    males.append(student)
+                else:
+                    nonMales.append(student)
 
+
+    if not isNotSmallClass:
+        for student in parentRoster:
+            if student in roster:
+                splitRoster[0].append(student)
+        for student in splitRoster[0]:
+            if queries.getStudentById(studentId).gender == 'M':
+                splitRosterMales[0] += 1
+        
+        #assign rest of students
+        for i in range(len(males)):
+            splitRoster[(i%(len(splitRoster)-1))+1].append(males.pop(0))
+            splitRosterMales[(i%(len(splitRoster)-1))+1] += 1
+        for i in range(len(nonMales)):
+            splitRoster[(i%(len(splitRoster)-1))+1].append(nonMales.pop(0))
+
+    else:
     #assignThese = [] => if generalizing logic parts
     #***** TO DO: Basis of ratio not number ******
-    if len(males) < 4:
-        splitRoster[0] = males
-        splitRosterMales[0] = len(males)
-        nonMales = shuffleArray(nonMales)
-        for i in range(len(males)):
-            for rosterNum in range (1, len(splitRoster)):
-                splitRoster[rosterNum].append(nonMales.pop(0))
-        for i in range(len(nonMales)):
-            splitRoster[i%len(splitRoster)].append(nonMales.pop(0))
-    elif len(nonMales) < 4:
-        splitRoster[0] = nonMales
-        for i in range(len(nonMales)):
-            for rosterNum in range (1, len(splitRoster)):
-                splitRoster[rosterNum].append(males.pop(0))
-                splitRosterMales[rosterNum] += 1
-        for i in range(len(males)):
-            splitRoster[i%len(splitRoster)].append(males.pop(0))
-            splitRosterMales[i%len(splitRoster)] += 1
-    else: 
-        adjustRatio(nonMales, males, "none")
-        for i in range(len(males)):
-            splitRoster[i%len(splitRoster)].append(males.pop(0))
-            splitRosterMales[i%len(splitRoster)] += 1
-        for i in range(len(nonMales)):
-            splitRoster[i%len(splitRoster)].append(nonMales.pop(0))
+        if len(males) < 4:
+            splitRoster[0] = males
+            splitRosterMales[0] = len(males)
+            nonMales = shuffleArray(nonMales, 5)
+            for i in range(len(nonMales)):
+                splitRoster[i%len(splitRoster)].append(nonMales.pop(0))
+        elif len(nonMales) < 4:
+            splitRoster[0] = nonMales
+            males = shuffleArray(males, 5)
+            for i in range(len(males)):
+                splitRoster[i%len(splitRoster)].append(males.pop(0))
+                splitRosterMales[i%len(splitRoster)] += 1
+        else: 
+            adjustRatio(nonMales, males, "none")
+            males = shuffleArray(males, 5)
+            nonMales = shuffleArray(nonMales, 5)
+            for i in range(len(males)):
+                splitRoster[i%len(splitRoster)].append(males.pop(0))
+                splitRosterMales[i%len(splitRoster)] += 1
+            for i in range(len(nonMales)):
+                splitRoster[i%len(splitRoster)].append(nonMales.pop(0))
     
     return [splitRoster, splitRosterMales]
 
