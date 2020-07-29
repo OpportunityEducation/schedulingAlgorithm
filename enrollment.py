@@ -284,7 +284,6 @@ def dealWithDuplicates():
         if i == 1:
             noSizeRun = True
         for course in duplicateCourses:
-            print("checking duplicate course")
             parentSection = queries.getCourseSectionsByCourseID(course.id)
             enrolledIn = queries.getStudentIDsEnrolledByCourseSection(parentSection[0].id)
             if (noSizeRun or len(enrolledIn) < settings.maxDuplicateClassSize) and parentSection[0].course_id not in dealtWithIDs:
@@ -297,17 +296,17 @@ def dealWithDuplicates():
                 problemSections += parentSection
                 print(problemSections)
                 duplicateRoster = list(getDuplicateRoster(problemSections))
-                print("DUPLICATE ROSTER")
-                print(duplicateRoster)
-                print("***************")
+                # print("DUPLICATE ROSTER")
+                # print(duplicateRoster)
+                # print("***************")
                 if len(duplicateRoster) > settings.maxDuplicateClassSize:
                     print("more students in duplicate class than possible in one section; splitting")
                     duplicateInfo = splitDuplicate(duplicateRoster, enrolledIn, noSizeRun)
                     duplicateSections = duplicateInfo[0]
                     duplicateSectionsMales = duplicateInfo[1]
-                    print("SECTIONS ASSIGNED")
-                    print(duplicateSections)
-                    print("***************")
+                    # print("SECTIONS ASSIGNED")
+                    # print(duplicateSections)
+                    # print("***************")
                 else:
                     duplicateSections = duplicateRoster
                     duplicateSectionsMales = 0
@@ -326,15 +325,9 @@ def getDuplicateRoster(duplicateSections):
     # print("************")
     for section in duplicateSections:
         students = queries.getStudentIDsEnrolledByCourseSection(section.id)
-        # course = queries.getCourseByID(section.course_id)
-        # roster = queries.getStudentsEnrolledByCourseName(course.name)
         allRosters.append(students)
     print("ALL ROSTERS")
     print(allRosters)
-    # for studentName in allRosters:
-    #     student = queries.getStudentByName(studentName)
-    #     idRoster.append(student.id)
-    # allRosters = idRoster
     duplicateRoster = []
     for i in range (len(allRosters)):
         checkThis = allRosters[i]
@@ -361,15 +354,15 @@ def splitDuplicate(roster, parentRoster, isNotSmallClass): #, parentCourseId): #
             if not studentId in parentRoster:
                 student = queries.getStudentById(studentId)
                 if student.gender == 'M':
-                    males.append(student)
+                    males.append(student.id)
                 else:
-                    nonMales.append(student)
+                    nonMales.append(student.id)
         else:
             student = queries.getStudentById(studentId)
             if student.gender == 'M':
-                males.append(student)
+                males.append(student.id)
             else:
-                nonMales.append(student)
+                nonMales.append(student.id)
 
     #this is only for duplicates with class size less than max class size (no splitting)
     if not isNotSmallClass:
@@ -386,7 +379,6 @@ def splitDuplicate(roster, parentRoster, isNotSmallClass): #, parentCourseId): #
             splitRosterMales[(i%(len(splitRoster)-1))+1] += 1
         for i in range(len(nonMales)):
             splitRoster[(i%(len(splitRoster)-1))+1].append(nonMales.pop(0))
-
     else:
     #assignThese = [] => if generalizing logic parts
     #***** TO DO: Basis of ratio not number ******
@@ -411,6 +403,50 @@ def splitDuplicate(roster, parentRoster, isNotSmallClass): #, parentCourseId): #
                 splitRosterMales[i%len(splitRoster)] += 1
             for i in range(len(nonMales)):
                 splitRoster[i%len(splitRoster)].append(nonMales.pop(0))
-    
+
     return [splitRoster, splitRosterMales]
 
+
+def enrollDuplicates(duplicateSections, duplicateSectionAssignments, duplicateSectionsMale):
+    global courseSectionId
+    print("enrolling duplicates")
+    for sectionId in duplicateSections:
+        section = queries.getCourseSectionByID(sectionId)
+        students = queries.getStudentIDsEnrolledByCourseSection(sectionId)
+        unassignedStudentIds = []
+
+        #create new section
+        courseSections = [queries.getCourseSectionByID(sectionId)]
+        for i in range (2, len(duplicateSectionAssignments)):
+            courseSectionId = int(courseSectionId) + 1
+            inserts.createCourseSection(courseSectionId, section.course_id, i)
+            courseSection = queries.getCourseSectionByID(courseSectionId)
+            courseSections.append(courseSection)
+
+        #add in maintaining gender ratio later
+        for duplicateRoster in duplicateSectionAssignments:
+            for studentId in duplicateRoster:
+                if studentId not in students:
+                    unassignedStudentIds.append(studentId)
+
+        #assign unassigned students (non duplicates)
+        unassignedStudentIds = shuffleArray(unassignedStudentIds, 5)
+        for i in range(len(unassignedStudentIds)):
+            studentId = unassignedStudentIds.pop(0)
+            duplicateSectionAssignments[i%len(duplicateSectionAssignments)].append(studentId)
+            if queries.getStudentById(studentId).gender == 'M':
+                duplicateSectionsMale[i%len(duplicateSectionAssignments)] += 1
+        
+        #NOW update sections and enroll students
+        for courseSection in courseSections:
+            course = queries.getCourseByID(courseSection.course_id)
+            dsa = duplicateSectionAssignments[courseSection.section_number+1]
+            mysqlUpdates.updateCourseSectionEnrollment(courseSection.id, len(dsa), duplicateSectionsMale[courseSection.section_number+1])
+
+            #enroll students, add into formatted output
+            tba = queries.getMentorByName('TBA')
+            for studentId in dsa:
+                mysqlUpdates.updateCourseEnrollment(studentId, courseSections[0].id, courseSection.id)
+                student = queries.getStudentById(studentId)
+                inserts.addFormattedOuput(student.name, student.year, student.gender, course.name, tba, courseSection.section_number)
+  
