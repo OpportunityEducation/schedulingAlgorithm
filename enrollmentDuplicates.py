@@ -30,10 +30,12 @@ def getConflicts():
         course_conflict = queries.getCourseConflictsByCourse(course.id)
         duplicates = course_conflict.duplicates
         duplicates_num = course_conflict.duplicates_num
+        number_of_sections = 0
         for j in range(i+1, len(courses)): #fix this part !!!!!
             if j < len(courses):
                 otherCourse = courses[j]
                 courseSection = queries.getCourseSectionsByCourseID(course.id)
+                number_of_sections = len(courseSection)
                 conflictNum = 0
                 courseStudentIds = queries.getStudentIDsEnrolledByCourseSection(courseSection[0].id)
                 otherSection = queries.getCourseSectionsByCourseID(otherCourse.id)
@@ -60,7 +62,7 @@ def getConflicts():
                         else:
                             print("THE OTHER %s CONTAINS %s " %(otherCourse.id, course.id))
                             updateContainedDuplicates(otherCourse.id, course.id)
-        mysqlUpdates.setDuplicates(duplicates, duplicates_num, course.id)
+        mysqlUpdates.setDuplicates(duplicates, duplicates_num, course.id, number_of_sections)
 
 
 def updateEqualDuplicates(courseId, newDuplicates, updateId):

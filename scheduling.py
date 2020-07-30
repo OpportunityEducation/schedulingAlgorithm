@@ -206,10 +206,23 @@ def findAvailableRooms(course_type, course_section):
 
 def assignDuplicates():
     global conflicts
+    duplicatesDealtWith = []
     duplicates = queries.getAllNonzeroDuplicates()
-    duplicates.sort(key=lambda x: x.duplicates_num, reverse=True)
+    duplicates.sort(key=lambda x: x.number_of_sections, reverse=True)
+    
     for course in duplicates:
+        courseSections = queries.getCourseSectionsByCourseID(course.id)
         
+
+    # for course in duplicates:
+    #     duplicateCourses = course.duplicates.split(',')
+    #     if course in duplicatesDealtWith:
+    #         sectionBasis = queries.getCourseSectionsByCourseID(course.id)
+    #         for course in 
+    #     else:
+    #         for duplicateCourse in duplicateCourses:
+    #             if duplicateCourse.id in duplicatesDealtWith:
+
         print("oops")
     print("checking to see conflicts")
     
