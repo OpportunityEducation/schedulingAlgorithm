@@ -3,7 +3,7 @@
 
 #import subfiles
 import settings, tierAssignment, inserts, queries, enrollment, successMetrics
-import deletions, formatData, usefulFunctions, scheduling, mysqlUpdates
+import deletions, formatData, usefulFunctions, scheduling, mysqlUpdates, enrollmentDuplicates
 
 #init assumptions
 settings.init()
@@ -37,6 +37,7 @@ fullRoster = []
 enrollment.init(studentList)
 for i in range (1, settings.periods):
     enrollment.enroll(studentList, i)
+enrollmentDuplicates.init()
 enrollment.balanceSections()
 enrollment.matchMentors()
 print("completed enrollment")
@@ -45,9 +46,9 @@ allCourseSections = queries.getAllCourseSections()
 for courseSection in allCourseSections:
     enrollment.addSectionFormattedOutput(courseSection)
 
-#schedule course sections 
-scheduling.init()
-print("scheduling complete")
+# #schedule course sections 
+# scheduling.init()
+# print("scheduling complete")
 
-#run success metrics
+# #run success metrics
 

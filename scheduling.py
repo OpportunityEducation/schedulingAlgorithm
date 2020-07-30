@@ -210,6 +210,6 @@ def assignDuplicates():
     duplicates.sort(key=lambda x: x.duplicates_num, reverse=True)
     for course in duplicates:
         
-
+        print("oops")
     print("checking to see conflicts")
     
