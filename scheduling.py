@@ -2,7 +2,7 @@
 
 import settings, inserts, queries, deletions, usefulFunctions, enrollment, random, mysqlUpdates, enrollment
 from random import randint
-from usefulFunctions import convertToMinutes
+from usefulFunctions import convertToMinutes, shuffleArray
 
 global conflicts
 conflicts = dict()
@@ -12,10 +12,10 @@ limitedMentors = []
 #init
 def init():
     #NEED TO INIT AMOUNT PER PERIODS (COURSE SECTION COUNT/SETTINGS.NUMBER OF PERIODS)
-    global periods, limitedMentors, conflicts 
+    global periods, limitedMentors #, conflicts 
     periods = queries.getAllPeriodTimeBlocks()
     limitedMentors = queries.getMentorIDsWithLimitedAvailability()
-    conflicts = enrollment.conflictDict
+    #conflicts = enrollment.conflictDict
     print("init scheduling")
     remainingCourseSections = []
 
@@ -207,22 +207,136 @@ def findAvailableRooms(course_type, course_section):
 def assignDuplicates():
     global conflicts
     duplicatesDealtWith = []
-    duplicates = queries.getAllNonzeroDuplicates()
-    duplicates.sort(key=lambda x: x.number_of_sections, reverse=True)
-    
-    for course in duplicates:
-        courseSections = queries.getCourseSectionsByCourseID(course.id)
-        
+    allDuplicates = queries.getAllNonzeroDuplicates()
+    allContainers = queries.getAllNonzeroContainerIds()
+    duplicateContainerIds = []
+    allDuplicates.sort(key=lambda x: x.number_of_sections)
+    largestSectionNum = allDuplicates[len(allDuplicates)-1].number_of_sections
+    index = 0
+    duplicatesGroups = [[] for _ in range(largestSectionNum+1)]
+    print(duplicatesGroups)
 
-    # for course in duplicates:
-    #     duplicateCourses = course.duplicates.split(',')
-    #     if course in duplicatesDealtWith:
-    #         sectionBasis = queries.getCourseSectionsByCourseID(course.id)
-    #         for course in 
-    #     else:
-    #         for duplicateCourse in duplicateCourses:
-    #             if duplicateCourse.id in duplicatesDealtWith:
+    #get dif groups based on sections
+    for dup in allDuplicates:
+        duplicatesGroups[dup.number_of_sections].append(dup)
+        if dup.id in allContainers:
+            duplicateContainerIds.append(dup.id)
+
+    print("ctoaniners")
+    print(allContainers)
+    print("duplicate containers")
+    print(duplicateContainerIds)
+
+    #go through and enroll based on duplicates within group (most is first)
+    for i in range (1, len(duplicatesGroups)):
+        sectionBasis = [[] for _ in range(1, i+2)]
+        sectionGroup = duplicatesGroups[i]
+        sectionGroup.sort(key=lambda x: x.duplicates_num, reverse=True)
+        print("section basis length: %s" %(len(sectionBasis)))
+        print("section basis: %s" %(sectionBasis))
+        for sectionGroupMember in sectionGroup:
+            if sectionGroupMember.id in duplicatesDealtWith:
+                break
+            else:
+                group = []
+                group.append(sectionGroupMember)
+                addThese = sectionGroupMember.duplicates.split(',')
+                for sectGM in addThese:
+                    addThis = queries.getCourseConflictsByCourse(sectGM)
+                    group.append(addThis)
+                print(group)
+                groupContains = []
+                for groupie in group:
+                    if groupie.id in duplicateContainerIds:
+                        withinGroup = groupie.contained_within.split(',')
+                        groupContains += withinGroup
+                        groupContains = list(set(groupContains))
+                        print("within this: ")
+                        print(groupContains)
+                if len(groupContains) > 0: # fix this part later to check for greatest amount of conflicts
+                    print("has containees")
+                    sectionBase = queries.getCourseSectionsByCourseID(groupContains[0])
+                    for i in range (len(sectionBase)):
+                        sectionBasis[i+1] = queries.getStudentIDsEnrolledByCourseSection(sectionBase[i].id)
+                    print("section basis is %s" %(sectionBasis))
+                    enrollWithBasis(sectionBasis, group)
+                else: #just do it on random basis basically; later add in grouping of student conflicts
+                    print("no containees so")
+                    enrollWithoutBasis(sectionBasis, group)
+                #dealt with all in group so 
+                for doneWith in group:
+                    duplicatesDealtWith.append(doneWith.id)
 
         print("oops")
     print("checking to see conflicts")
+
+
+def enrollWithBasis(basis, courses):
+    allSections = []
+    for course in courses:
+        courseSections = queries.getCourseSectionsByCourseID(course.id)
+        allSections += courseSections
+    sharedStudents = list(getDuplicateRoster(allSections))
+    
+    print("has a bsis")
+
+def enrollWithoutBasis(basis, courses):
+    if len(basis) == 2: #single section courses, just enroll normally
+        print("single section based")
+        for course in courses:
+            courseSections = queries.getCourseSectionsByCourseID(course.id)
+            enrollment.addSectionFormattedOutput(courseSections[0])
+            #FIND PERIODS FOR THIS BABY
+    else:
+        allSections = []
+        for course in courses:
+            courseSections = queries.getCourseSectionsByCourseID(course.id)
+            allSections += courseSections
+        sharedStudents = list(getDuplicateRoster(allSections))
+        print("sharedStudents: %s" %(sharedStudents))
+        sharedSections = splitStudents(basis, sharedStudents)
+        for course in courses: 
+            unassignedStudents = []
+            courseSections = queries.getCourseSectionsByCourseID(course.id)
+            courseSpecificStudentLists = queries.getStudentIDsEnrolledByCourseSection(courseSections[0].id)
+            courseSpecificStudents = []
+            for csl in courseSpecificStudentLists:
+                courseSpecificStudents += csl
+                courseSpecificStudents = list(set(courseSpecificStudents))
+            for student in courseSpecificStudents:
+                if student not in sharedStudents:
+                    unassignedStudents.append(student)
+            print("unassigned students: %s" %(unassignedStudents))
+            courseSpecificSections = splitStudents(sharedSections, unassignedStudents)
+            print("course specifc sections: %s" %(courseSpecificSections))
+        #then just assign randomly **** TO DO: BASE ASSIGNEMNT ON STUDENT AVAILABILITY****
+        print("has no basis")
+
+def getDuplicateRoster(duplicateSections):
+    allRosters = []
+    idRoster = []
+    for section in duplicateSections:
+        students = queries.getStudentIDsEnrolledByCourseSection(section.id)
+        allRosters.append(students)
+    duplicateRoster = []
+    for i in range (len(allRosters)):
+        checkThis = allRosters[i]
+        for j in range (i+1, len(allRosters)):
+            if j < len(allRosters):
+                for student in checkThis:
+                    if student in allRosters[j]:
+                        duplicateRoster.append(student)
+    print("duplicate roster")
+    print(set(duplicateRoster))
+    print(len(set(duplicateRoster)))
+    return set(duplicateRoster) # <-- set of all ids in multiple duplicates
+
+
+def splitStudents(basis, students):
+    print("splitting students")
+    students = shuffleArray(students, 5)
+    for i in range(len(students)):
+        basis[(i%(len(basis)-1))+1].append(students.pop(0))
+    print(basis)
+    return basis
     

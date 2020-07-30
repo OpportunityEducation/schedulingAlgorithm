@@ -30,12 +30,12 @@ def getConflicts():
         course_conflict = queries.getCourseConflictsByCourse(course.id)
         duplicates = course_conflict.duplicates
         duplicates_num = course_conflict.duplicates_num
-        number_of_sections = 0
+        number_of_sections = len(queries.getCourseSectionsByCourseID(course.id))
         for j in range(i+1, len(courses)): #fix this part !!!!!
             if j < len(courses):
                 otherCourse = courses[j]
                 courseSection = queries.getCourseSectionsByCourseID(course.id)
-                number_of_sections = len(courseSection)
+                #number_of_sections = len(courseSection)
                 conflictNum = 0
                 courseStudentIds = queries.getStudentIDsEnrolledByCourseSection(courseSection[0].id)
                 otherSection = queries.getCourseSectionsByCourseID(otherCourse.id)

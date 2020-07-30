@@ -46,7 +46,7 @@ enrollment.matchMentors()
 #     enrollment.addSectionFormattedOutput(courseSection)
 
 # #schedule course sections 
-# scheduling.init()
+scheduling.init()
 # print("scheduling complete")
 
 # #run success metrics

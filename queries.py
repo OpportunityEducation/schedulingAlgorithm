@@ -351,7 +351,6 @@ def getNumberOfCourseTypes():
 def getAllCourseTypes(typenum):
     query = ("SELECT * FROM classroom_type")
     cursor = runMySQLOperation(query)
-    #change number of types if necessary
     types = dict.fromkeys(range(1,typenum), [])
     for (id, course_type) in cursor:
         types[id].append(course_type)
@@ -376,7 +375,6 @@ def getRoomsBookedByPeriod(periodId):
         roomIds.append(classroom_id)
     idList = [x[0] for x in roomIds]
     return idList
-    #return roomIds
 
 def getRoomByID(id):
     query = ("SELECT * FROM classroom WHERE id=%s" %(id))
@@ -418,4 +416,12 @@ def getAllNonzeroDuplicates():
     for (id, dupes, dupeNum, contains, sectNum) in cursor:
         obj.append(CourseConflict(id, dupes, dupeNum, contains, sectNum))
     return obj
+
+def getAllNonzeroContainerIds():
+    query = ("SELECT * FROM course_conflicts WHERE contained_within is not NULL")
+    cursor = runMySQLOperation(query)
+    ids = []
+    for (id, dupes, dupeNum, contains, sectNum) in cursor:
+        ids.append(id)
+    return ids
     
