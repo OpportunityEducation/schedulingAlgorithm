@@ -35,8 +35,8 @@ print("tiers assigned")
 #enroll in courses
 fullRoster = []
 enrollment.init(studentList)
-enrollmentDuplicates.init()
 enrollment.balanceSections()
+enrollmentDuplicates.init()
 enrollment.matchMentors()
 
 

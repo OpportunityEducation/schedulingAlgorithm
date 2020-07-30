@@ -44,8 +44,9 @@ def getConflicts():
                         if studentId in otherStudentIds:
                             conflicts += 1
                     if conflicts/len(courseStudentIds) > .9 or conflicts/len(otherStudentIds) > .9:
-                        courseSectionNum = int(len(courseStudentIds)/settings.maxClassSize)
-                        otherSectionNum = int(len(otherStudentIds)/settings.maxClassSize)
+                        #change this lol
+                        courseSectionNum = len(courseSection)
+                        otherSectionNum = len(otherSection)
                         if courseSectionNum == otherSectionNum:
                             print("%s and %s are DUPLICATES of equal size" %(course.name, otherCourse.name))
                             duplicates = updateEqualDuplicates(otherCourse.id, duplicates, -1)
@@ -54,16 +55,8 @@ def getConflicts():
                             duplicates_num += 1
                             conflictNum = conflicts
                         elif courseSectionNum > otherSectionNum:
-                            if len(courseStudentIds)%settings.maxClassSize == 0:
-                                print("%s and %s are DUPLICATES of equal size" %(course.name, otherCourse.name))
-                                duplicates = updateEqualDuplicates(otherCourse.id, duplicates, -1)
-                                otherCourseConflicts = queries.getCourseConflictsByCourse(otherCourse.id)
-                                updateEqualDuplicates(course.id, otherCourseConflicts.duplicates, otherCourse.id)
-                                duplicates_num += 1
-                                conflictNum = conflicts
-                            else:
-                                print("THE COURSE %s CONTAINS %s " %(course.id, otherCourse.id))
-                                updateContainedDuplicates(course.id, otherCourse.id)
+                            print("THE COURSE %s CONTAINS %s " %(course.id, otherCourse.id))
+                            updateContainedDuplicates(course.id, otherCourse.id)
                         else:
                             print("THE OTHER %s CONTAINS %s " %(otherCourse.id, course.id))
                             updateContainedDuplicates(otherCourse.id, course.id)
@@ -87,13 +80,3 @@ def updateContainedDuplicates(containerId, containedId):
     else :
         contained += "," + str(containedId)
     mysqlUpdates.updateContained(contained, containerId)
-    # update the conatiner
-
-# def makeDuplicateSections():
-#     duplicatesAlreadySplit = []
-#     duplicateCourses = queries.getAllNonzeroDuplicates()
-
-#     for duplicateCourse in duplicateCourses:
-#         if duplicateCourse.id not in duplicatesAlreadySplit:
-#             #need to find greatest ones and then 
-

@@ -24,7 +24,7 @@ def init(studentList):
     for i in range(settings.periods):
         for student in studentList:
             findCourseSection(student)
-
+    allCourseSections = queries.getAllCourseSections()
 
 #specific student enrollment function; creates or finds a course section
 def findCourseSection(student):
@@ -36,7 +36,6 @@ def findCourseSection(student):
         if len(courseSections) > 0: #course section exists, add kid to class roster
             enrollStudent(courseSections[0], student)
         else : 
-            print("creating course section for %s" %(course.id))
             courseSectionId = int(courseSectionId) + 1
             inserts.createCourseSection(courseSectionId, course.id, 1)
             courseSection = queries.getCourseSectionByID(courseSectionId)
