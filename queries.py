@@ -117,6 +117,22 @@ def getCourseByName(name):
     for (id, name, allowed_grades, is_elective, course_type) in cursor:
         return Course(id, name, allowed_grades, is_elective, course_type)
 
+def getCoreCourses():
+    query = ("SELECT * FROM course WHERE is_elective=0")
+    cursor = runMySQLOperation(query)
+    courses = []
+    for (id, name, allowed_grades, is_elective, course_type) in cursor:
+        courses.append(Course(id, name, allowed_grades, is_elective, course_type))
+    return courses
+
+def getCoreCourseIds():
+    query = ("SELECT * FROM course WHERE is_elective=0")
+    cursor = runMySQLOperation(query)
+    ids = []
+    for (id, name, allowed_grades, is_elective, course_type) in cursor:
+        ids.append(id)
+    return ids
+
 
 # COURSE SECTIONS
 def getCourseSectionByID(id):

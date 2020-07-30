@@ -10,12 +10,15 @@ duplicates = ""
 duplicates_num = 0
 courseSectionId = 0
 allCourseSections = []
+sectionsAlreadySplit = []
+coreCoursesIds = []
 
 #init 
 def init():
-    global allCourseSections, courseSectionId, duplicates_num
+    global allCourseSections, courseSectionId, duplicates_num, coreCoursesIds
     courseSectionId = enrollment.courseSectionId
     allCourseSections = enrollment.allCourseSections
+    coreCoursesIds = queries.getCoreCourseIds()
     getConflicts()
     dealWithDuplicates()
 
@@ -62,46 +65,43 @@ def updateCourseConflicts(courseId, newDuplicates, updateId):
 
 
 def dealWithDuplicates():
+    global sectionsAlreadySplit
     print("dealing with duplicates")
-    dealtWithIDs = []
     duplicateCourses = queries.getAllNonzeroDuplicates()
     for dv in duplicateCourses:
         print(dv.id)
     duplicateCourses.sort(key=lambda x: x.duplicates_num, reverse=True)
 
-    #do classes that are self contained duplicates then do rest of duplicates
-    for i in range (2):
-        noSizeRun = False
-        if i == 1:
-            noSizeRun = True
-        for course in duplicateCourses:
-            parentSection = queries.getCourseSectionsByCourseID(course.id)
-            enrolledIn = queries.getStudentIDsEnrolledByCourseSection(parentSection[0].id)
-            if (noSizeRun or len(enrolledIn) < settings.maxDuplicateClassSize) and parentSection[0].course_id not in dealtWithIDs:
-                problemSections = []
-                dupes = queries.getCourseConflictsByCourse(course.id)
-                problemIDs = (dupes.duplicates).split(",")
-                for problemID in problemIDs:
-                    problemSections += queries.getCourseSectionsByCourseID(problemID)
-                problemSections += parentSection
-                duplicateRoster = list(getDuplicateRoster(problemSections))
-                duplicateSectionsMales = 0
-                if len(duplicateRoster) > settings.maxDuplicateClassSize:
-                    print("more students in duplicate class than possible in one section; splitting")
-                    duplicateInfo = splitDuplicate(duplicateRoster, enrolledIn, noSizeRun)
-                    duplicateSections = duplicateInfo[0]
-                    duplicateSectionsMales = duplicateInfo[1]
-                else:
-                    duplicateSections = [duplicateRoster]
-                    for studentId in duplicateSections[0]:
-                        student = queries.getStudentById(studentId)
-                        if student.gender == 'M':
-                            duplicateSectionsMales += 1
-                    duplicateSectionsMales = [duplicateSectionsMales]
-                for problem in problemSections:
-                    if problem.course_id not in dealtWithIDs:
-                        enrollDuplicates(problem, duplicateSections, duplicateSectionsMales)
-                    dealtWithIDs.append(problem.course_id)
+    #deal with courses as individuals
+    for course in duplicateCourses:
+        parentSection = queries.getCourseSectionsByCourseID(course.id)
+        enrolledIn = queries.getStudentIDsEnrolledByCourseSection(parentSection[0].id)
+
+        #figure out duplicate stuff
+        problemSections = []
+        dupes = queries.getCourseConflictsByCourse(course.id)
+        problemIDs = (dupes.duplicates).split(",")
+        for problemID in problemIDs:
+            problemSections += queries.getCourseSectionsByCourseID(problemID)
+        problemSections += parentSection
+        duplicateRoster = list(getDuplicateRoster(problemSections))
+        duplicateSectionsMales = 0
+        if len(duplicateRoster) > settings.maxDuplicateClassSize:
+            print("more students in duplicate class than possible in one section; splitting")
+            duplicateInfo = splitDuplicate(duplicateRoster, problemSections)
+            duplicateSections = duplicateInfo[0]
+            duplicateSectionsMales = duplicateInfo[1]
+        else:
+            duplicateSections = [duplicateRoster]
+            for studentId in duplicateSections[0]:
+                student = queries.getStudentById(studentId)
+                if student.gender == 'M':
+                    duplicateSectionsMales += 1
+            duplicateSectionsMales = [duplicateSectionsMales]
+        for problem in problemSections:
+            if problem.course_id not in sectionsAlreadySplit:
+                enrollDuplicates(problem, duplicateSections, duplicateSectionsMales)
+            sectionsAlreadySplit.append(problem.course_id)
 
 def getDuplicateRoster(duplicateSections):
     allRosters = []
@@ -122,75 +122,24 @@ def getDuplicateRoster(duplicateSections):
     return set(duplicateRoster) # <-- set of all ids in multiple duplicates
 
 
-def splitDuplicate(roster, parentRoster, isNotSmallClass): #, parentCourseId): #roster contains all names of students
+def splitDuplicate(roster, sections): #, parentCourseId): #roster contains all names of students
+    global coreCoursesIds
     print("splitting duplicate")
     males = []
     nonMales = []
     smallRoster = []
-    numSections = int(len(roster)/settings.maxDuplicateClassSize)
-    if len(roster)%settings.maxDuplicateClassSize > 0:
-        numSections += 1
-    splitRoster = [[] for _ in range(numSections)]
-    splitRosterMales = [0 for _ in range(numSections)]
-    for studentId in roster:
-        if not isNotSmallClass:
-            if studentId not in parentRoster:
-                student = queries.getStudentById(studentId)
-                if student.gender == 'M':
-                    males.append(student.id)
-                else:
-                    nonMales.append(student.id)
+
+    #core courses take priority, so find them first
+    coreCourses = []
+    electives = []
+    for section in sections:
+        if section.course_id in coreCourses:
+            coreCourses.append(section)
         else:
-            student = queries.getStudentById(studentId)
-            if student.gender == 'M':
-                males.append(student.id)
-            else:
-                nonMales.append(student.id)
-    
-    males = list(set(males))
-    nonMales = list(set(nonMales))
+            electives.append(section)
+    coreCourses.sort(key=lambda x: x.students_enrolled) #, reverse=True)
 
-    #this is only for duplicates with class size less than max class size (no splitting)
-    if not isNotSmallClass:
-        for student in parentRoster:
-            if student in roster:
-                splitRoster[0].append(student)
-        for student in splitRoster[0]:
-            if queries.getStudentById(studentId).gender == 'M':
-                splitRosterMales[0] += 1
-        
-        #assign rest of students
-        for i in range(len(males)):
-            splitRoster[(i%(len(splitRoster)-1))+1].append(males.pop(0))
-            splitRosterMales[(i%(len(splitRoster)-1))+1] += 1
-        for i in range(len(nonMales)):
-            splitRoster[(i%(len(splitRoster)-1))+1].append(nonMales.pop(0))
-    else:
-    #assignThese = [] => if generalizing logic parts
-    #***** TO DO: Basis of ratio not number ******
-        if len(males) < 4:
-            splitRoster[0] = males
-            splitRosterMales[0] = len(males)
-            nonMales = shuffleArray(nonMales, 5)
-            for i in range(len(nonMales)):
-                splitRoster[i%len(splitRoster)].append(nonMales.pop(0))
-        elif len(nonMales) < 4:
-            splitRoster[0] = nonMales
-            males = shuffleArray(males, 5)
-            for i in range(len(males)):
-                splitRoster[i%len(splitRoster)].append(males.pop(0))
-                splitRosterMales[i%len(splitRoster)] += 1
-        else: 
-            males = shuffleArray(males, 5)
-            nonMales = shuffleArray(nonMales, 5)
-            for i in range(len(males)):
-                splitRoster[i%len(splitRoster)].append(males.pop(0))
-                splitRosterMales[i%len(splitRoster)] += 1
-            for i in range(len(nonMales)):
-                splitRoster[i%len(splitRoster)].append(nonMales.pop(0))
-
-    return [splitRoster, splitRosterMales]
-
+   
 
 def enrollDuplicates(duplicateSection, duplicateSectionAssignments, duplicateSectionsMale):
     global courseSectionId
