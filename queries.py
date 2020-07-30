@@ -404,20 +404,18 @@ def getCapacityByRoomId(room_id):
     return cp[0]
 
 
-# COURSE CONFLICTS
+# COURSE CONFLICTS (DUPLICATES)
 def getCourseConflictsByCourse(id):
     query = ("SELECT * from course_conflicts WHERE id=%s" %(id))
     cursor = runMySQLOperation(query)
-    for (id, dupes, dupeNum) in cursor:
-        return CourseConflict(id, dupes, dupeNum)
+    for (id, dupes, dupeNum, contains) in cursor:
+        return CourseConflict(id, dupes, dupeNum, contains)
 
-
-# DUPLICATES
 def getAllNonzeroDuplicates():
     query = ("SELECT * FROM course_conflicts WHERE duplicates_num > 0")
     cursor = runMySQLOperation(query)
     obj = []
-    for (id, dupes, dupeNum) in cursor:
-        obj.append(CourseConflict(id, dupes, dupeNum))
+    for (id, dupes, dupeNum, contains) in cursor:
+        obj.append(CourseConflict(id, dupes, dupeNum, contains))
     return obj
     

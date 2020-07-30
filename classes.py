@@ -98,7 +98,8 @@ class Classroom:
         self.classroom_type_id = classroom_type_id
 
 class CourseConflict:
-    def __init__(self, id, duplicates, duplicates_num):
+    def __init__(self, id, duplicates, duplicates_num, contained_within):
         self.id = id
         self.duplicates = duplicates
         self.duplicates_num = duplicates_num
+        self.contained_within = contained_within

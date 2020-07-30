@@ -35,16 +35,15 @@ print("tiers assigned")
 #enroll in courses
 fullRoster = []
 enrollment.init(studentList)
-for i in range (1, settings.periods):
-    enrollment.enroll(studentList, i)
 enrollmentDuplicates.init()
 enrollment.balanceSections()
 enrollment.matchMentors()
-print("completed enrollment")
 
-allCourseSections = queries.getAllCourseSections()
-for courseSection in allCourseSections:
-    enrollment.addSectionFormattedOutput(courseSection)
+
+
+# allCourseSections = queries.getAllCourseSections()
+# for courseSection in allCourseSections:
+#     enrollment.addSectionFormattedOutput(courseSection)
 
 # #schedule course sections 
 # scheduling.init()

@@ -37,6 +37,8 @@ def assignCourseSectionToRoom(id, section_number, assignedRoom):
     query = ("UPDATE course_section SET classroom_id=%s WHERE id=%s AND section_number=%s" %(assignedRoom, id, section_number))
     cursor = runMySQLOperation(query)
 
+
+# DUPLICATES
 def updateDuplicates(duplicate, id):
     query = ("UPDATE course_conflicts SET duplicates='%s' WHERE id=%s" %(duplicate, id))
     cursor = runMySQLOperation(query)
@@ -46,7 +48,7 @@ def setDuplicates(duplicate, duplicateNum, id):
     cursor = runMySQLOperation(query)
 
 def clearDuplicates():
-    query = ("UPDATE course_conflicts SET duplicates = NULL WHERE duplicates is not null")
+    query = ("UPDATE course_conflicts SET duplicates = NULL, contained_within = NULL WHERE duplicates is not null")
     cursor = runMySQLOperation(query)
 
 def clearDuplicateNums():
@@ -55,4 +57,8 @@ def clearDuplicateNums():
 
 def incrementDuplicateNum(courseId):
     query = ("UPDATE course_conflicts SET duplicates_num = duplicates_num + 1 WHERE id = %s" %(courseId))
+    cursor = runMySQLOperation(query)
+
+def updateContained(contains, id):
+    query = ("UPDATE course_conflicts SET contained_within='%s' WHERE id=%s" %(contains, id))
     cursor = runMySQLOperation(query)

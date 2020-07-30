@@ -21,6 +21,8 @@ def insertPreferences():
                     req = req[:-1]
                 if(req == "Physcial Education"):
                     req = "Physical Education"
+                if req == "Physical Education (Foundation Phase)":
+                    print("GOT IT")
                 if(req== "CSP"):
                     req = "CSP (Computer Science Principles)"
                 course = queries.getCourseByName(req)
