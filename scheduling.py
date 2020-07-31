@@ -1,7 +1,7 @@
 #responsbile for assigning class periods and classrooms
 
-import settings, inserts, queries, deletions, usefulFunctions 
-import enrollment, random, mysqlUpdates, enrollment, assignRooms, enrollmentDuplicates
+import settings, inserts, queries, deletions, usefulFunctions, assignPeriods
+import enrollment, random, mysqlUpdates, assignRooms, enrollmentDuplicates
 from random import randint
 from usefulFunctions import convertToMinutes, shuffleArray
 
@@ -17,38 +17,16 @@ def init():
     periods = queries.getAllPeriodTimeBlocks()
     limitedMentors = queries.getMentorIDsWithLimitedAvailability()
     conflicts = dict.fromkeys(list(range(1, settings.maxClassSize+1))) #keep track of all differences
+    
     print("init scheduling")
-    remainingCourseSections = []
-
     assignDuplicates()
 
-    #allCourseSections = queries.getAllCourseSections()
+    for cs in queries.getAllCourseSections():
+        enrollment.addSectionFormattedOutput(cs)
 
-    print("assigning limited availability first")
-    #assign limited availability mentors first 
-    for course_section in enrollment.allCourseSections:
-        mentor_id = queries.getMentorIDByCourseSection(course_section.id)
-        if mentor_id in limitedMentors:
-            assignPeriod(mentor_id, course_section, True)
-        else :
-            remainingCourseSections.append(course_section)
-
-    #then assign rest of mentors
-    print("assigning mentors")
-    for course_section in remainingCourseSections:
-        if course_section.class_period == 0: 
-            mentor_id = queries.getMentorIDByCourseSection(course_section.id)
-            assignPeriod(mentor_id, course_section, False)
-    print("done assigning mentors")
-
-    for i in range(1, settings.periods+1):
-        period = queries.getCourseSectionsByPeriod(i)
-        #checkConflicts(period)
-
-    print("assigning periods")
+    assignPeriods.init()
     assignRooms.init()
-
-
+    print("finished scheduling")
 
 #checks availability and if matching, groups 
 def groupAvailability(users): #, isMentor):
@@ -63,70 +41,6 @@ def groupAvailability(users): #, isMentor):
             group = queries.getAllStudentsIDsWithSpecificCommitmentBlock(block)
             groups.append(group)
         return groups
-
-
-def assignPeriod(mentor_id, course_section, isLimited):
-    noMatch = True
-    posPeriods = [1, 2, 3, 4, 5, 6]
-    posPeriods = set(posPeriods) - set(checkMentorEnrolledPeriods(mentor_id))
-    posPeriods = list(posPeriods)
-    if len(posPeriods) > 0:
-        if(isLimited):
-            limits = queries.getMentorAvailabilityByID(mentor_id)
-            while True:
-                index = posPeriods[randint(0, len(posPeriods)-1)]
-                period = periods[index]
-                periodsLeft = queries.getPeriodsLeftByID(index)
-                if periodsLeft > 0: #& balancePeriods(periodsLeft):
-                    noConflict = True
-                    for bk in period:
-                        noConflict &= checkContainment(bk, limits)
-                    if(noConflict):
-                        mysqlUpdates.updatePeriodForCourseSection(index, course_section.id)
-                        periodsLeft -= 1
-                        mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
-                        break                    
-        else :
-            while noMatch:
-                index = posPeriods[randint(0, len(posPeriods)-1)]
-                period = periods[index]
-                periodsLeft = queries.getPeriodsLeftByID(index)
-                if periodsLeft > 0:
-                    mysqlUpdates.updatePeriodForCourseSection(index, course_section.id)
-                    periodsLeft -= 1
-                    mysqlUpdates.decrementPeriodsLeft(index, periodsLeft)
-                    noMatch = False
-                    break
-    else:
-        print("mentor has run out of possible sections")
-
-#determine if limited availability excludes randomly selected period
-def checkContainment(period, limits):
-    for limit in limits:
-        if(limit.day_id == period.day_id):
-            lStart = convertToMinutes(str(limit.start_time))
-            lEnd = convertToMinutes(str(limit.end_time))
-            pStart = convertToMinutes(str(period.start_time))
-            pEnd = convertToMinutes(str(period.end_time))
-            if (lStart < pStart & lEnd < pEnd & lEnd > pStart) | (lStart < pStart & lEnd > pEnd) | (lStart > pStart & lEnd < pEnd) | (lStart > pStart & lStart < pEnd & lEnd > pEnd):
-                return False
-        return True
-
-
-def checkMentorEnrolledPeriods(mentor_id):
-    sectionIDs = queries.getCourseSectionIDsByMentorID(mentor_id)
-    periods = []
-    for sectionID in sectionIDs:
-        periods.append(queries.getPeriodFromCourseSectionID(sectionID))
-    return periods
-
-
-#control for randomization outlying possibility of heavily lopsided enrollment
-def balancePeriods(periodsLeft):
-    remainders = []
-    for i in range (1,7):
-        remainders.append(queries.getPeriodsLeftByID(i))
-    return True
 
 
 def assignDuplicates():
@@ -172,7 +86,14 @@ def assignDuplicates():
                         # print(groupContains)
                 if len(groupContains) > 0: # fix this part later to check for greatest amount of conflicts
                     #print("has containees")
-                    sectionBase = queries.getCourseSectionsByCourseID(groupContains[0])
+
+                    #find the greatest amount of sections
+                    largestBasis = queries.getCourseConflictsByCourse(groupContains[0])
+                    for containee in groupContains:
+                        if queries.getCourseConflictsByCourse(containee).number_of_sections > largestBasis.number_of_sections:
+                            largestBasis = containee
+
+                    sectionBase = queries.getCourseSectionsByCourseID(largestBasis.id) #(groupContains[0])
                     for i in range (len(sectionBase)):
                         sectionBasis[i+1] = queries.getStudentIDsEnrolledByCourseSection(sectionBase[i].id)
                     print("section basis is %s" %(sectionBasis))
@@ -194,28 +115,100 @@ def enrollWithBasis(basis, courses):
         print(len(queries.getStudentIDsEnrolledByCourseSection(courseSections[0].id)))
         allSections += courseSections
     sharedStudents = getDuplicateRoster(allSections)
-    print("shared")
-    print(sharedStudents)
+    print("ENROLL WITH BASIS")
+    print("basis")
+    print(basis)
+    unbased = []
+    for i in range(len(basis)):
+        if basis[i] == []:
+            unbased.append(basis[i])
+
+    print("unbased")
+    print(unbased)
 
     #get students already enrolled
     basedStudents = []
     for base in basis:
         basedStudents += base
-    
-    print("based")
-    print(basedStudents)
-    
+ 
     unassignedStudents = sharedStudents - set(basedStudents)
     unassignedStudents = list(unassignedStudents)
 
-    print("unassigned")
-    print(unassignedStudents)
+    unbased = splitStudents(unbased, unassignedStudents)
+    unbased.remove([])
+    print("split unbased")
+    print(unbased)
 
-    sectionNum = len(basis)-1
+    #   ADD BACK IN FOR OTHER COURSES
+    # for course in courses:
+    #     courseSections = queries.getCourseSectionsByCourseID(course.id)
+    #     #print("courseSections: %s" %(courseSections))
+    #     courseSpecificStudents = queries.getStudentIDsEnrolledByCourseSection(courseSections[0].id)
+    #     unassignedStudents = set(courseSpecificStudents) - sharedStudents
+    #     unassignedStudents = list(unassignedStudents)
+    #     rebased = splitStudents(unbased, unassignedStudents)
+    #     rebased.remove([])
+    #     realBasis = [[]]
+    #     for i in range(len(basis)):
+    #         if basis[i] != []:
+    #             realBasis.append(basis[i])
+    #     realBasis += rebased
+    #     print("real basis")
+    #     print(realBasis)
 
+    # unbased.remove([])
+    realBasis = [[]]
+    for i in range(len(basis)):
+        if basis[i] != []:
+            realBasis.append(basis[i])
+
+    print("basis edited")
+    print(realBasis)
+
+    realBasis += unbased
+    print("new basis")
+    print(realBasis)
+
+    pt1 = realBasis[1]
+    print(pt1)
+    newRealBasis = []
+    for i in range(5):
+        # ap = pt1[i]
+        realBasis[3].append(realBasis[1].pop(0))
+    pt2 = realBasis[2]
+    for i in range(6):
+        # ap = pt2[i]
+        realBasis[3].append(realBasis[2].pop(0))
+
+    print("shared sections")
+    print(realBasis)
+
+    sharedSections = realBasis
+    for course in courses: 
+        courseSections = queries.getCourseSectionsByCourseID(course.id)
+        #print("courseSections: %s" %(courseSections))
+        courseSpecificStudents = queries.getStudentIDsEnrolledByCourseSection(courseSections[0].id)
+        #print("course specific students %s" %(courseSpecificStudents))
+        unassignedStudents = set(courseSpecificStudents) - sharedStudents
+        unassignedStudents = list(unassignedStudents)
+        if len(unassignedStudents) > 0:
+            courseSpecificSections = splitStudents(sharedSections, unassignedStudents)
+        else:
+            courseSpecificSections = sharedSections
+        for i in range (1, len(courseSpecificSections)):
+            css = courseSpecificSections[i]
+            students_enrolled = 0
+            for student in css:
+                if student in courseSpecificStudents:
+                    mysqlUpdates.updateCourseEnrollment(student, courseSections[0].id, courseSections[i-1].id)
+                    students_enrolled += 1
+            mysqlUpdates.updateCourseSectionEnrollment(courseSections[i-1].id, students_enrolled, 0)
+        # formatThese = queries.getCourseSectionsByCourseID(course.id)
+        # for ft in formatThese:
+        #     enrollment.addSectionFormattedOutput(ft)
     
-    
-    print("has a bsis")
+
+
 
 def enrollWithoutBasis(basis, courses):
     if len(basis) > 2:
@@ -245,9 +238,9 @@ def enrollWithoutBasis(basis, courses):
                         mysqlUpdates.updateCourseEnrollment(student, courseSections[0].id, courseSections[i-1].id)
                         students_enrolled += 1
                 mysqlUpdates.updateCourseSectionEnrollment(courseSections[i-1].id, students_enrolled, 0)
-            formatThese = queries.getCourseSectionsByCourseID(course.id)
-            for ft in formatThese:
-                enrollment.addSectionFormattedOutput(ft)
+            # formatThese = queries.getCourseSectionsByCourseID(course.id)
+            # for ft in formatThese:
+            #     enrollment.addSectionFormattedOutput(ft)
         #then just assign randomly **** TO DO: BASE ASSIGNEMNT ON STUDENT AVAILABILITY****
         print("has no basis")
 
@@ -274,4 +267,4 @@ def splitStudents(basis, students):
     for i in range(len(students)):
         basis[(i%(len(basis)-1))+1].append(students.pop(0))
     return basis
-    
+  

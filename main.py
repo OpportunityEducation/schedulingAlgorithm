@@ -40,28 +40,15 @@ enrollmentDuplicates.init()
 enrollment.matchMentors()
 
 
-addTheseToFormatted = enrollment.singleSections
-
 #DEAL WITH CONTAINMENT LATER
-dupIds = queries.getAllNonzeroDuplicateIds()
-
-# for courseSection in courseSections:
-#     mysqlUpdates.updateCourseSectionEnrollment(courseSection.id, splitSections[0], 0)
-#     if courseSection.course_id not in dupIds:
-#         singleSections.append(courseSection)
-
-
-# for courseSection in enrollment.singleSections:
-#     enrollment.addSectionFormattedOutput(courseSection)
-
-
-for courseSection in queries.getAllCourseSections():
-    if courseSection in enrollment.singleSections or courseSection.course_id not in dupIds:
-        enrollment.addSectionFormattedOutput(courseSection)
+# dupIds = queries.getAllNonzeroDuplicateIds()
+# for courseSection in queries.getAllCourseSections():
+#     if courseSection in enrollment.singleSections or courseSection.course_id not in dupIds:
+#         enrollment.addSectionFormattedOutput(courseSection)
 
 # #schedule course sections 
 scheduling.init()
-# print("scheduling complete")
+print("scheduling complete")
 
 # #run success metrics
 
