@@ -97,8 +97,6 @@ def splitSection(section, courseId):
 
     for courseSection in courseSections:
         mysqlUpdates.updateCourseSectionEnrollment(courseSection.id, splitSections[0], 0)
-
-
   
   
 #assign mentors to course sections

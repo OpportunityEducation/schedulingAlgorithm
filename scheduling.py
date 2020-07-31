@@ -1,6 +1,7 @@
 #responsbile for assigning class periods and classrooms
 
-import settings, inserts, queries, deletions, usefulFunctions, enrollment, random, mysqlUpdates, enrollment
+import settings, inserts, queries, deletions, usefulFunctions 
+import enrollment, random, mysqlUpdates, enrollment, assignRooms
 from random import randint
 from usefulFunctions import convertToMinutes, shuffleArray
 
@@ -42,13 +43,8 @@ def init():
         #checkConflicts(period)
 
     print("assigning periods")
-    #then assign rooms to sections by period
-    for i in range (1, settings.periods+1):
-        sections = queries.getCourseSectionsByPeriod(i)
-        assignRoomByPeriod(sections, i)
+    assignRooms.init()
 
-    for section in queries.getAllCourseSections():
-        addRoomsToFormattedOutput(section)
 
 
 #checks availability and if matching, groups 
@@ -101,67 +97,6 @@ def assignPeriod(mentor_id, course_section, isLimited):
     else:
         print("mentor has run out of possible sections")
 
-
-def assignRoomByPeriod(sections, period):
-    print("assigning room by period")
-
-    #sort sections by num enrolled as we need to enroll smallest classes first
-    sections.sort(key=lambda x: x.students_enrolled) 
-
-    #OMAHA ONLY
-    if any(section.course_id == 23 for section in sections):
-        print("CSP must be in 340 which has id 5")
-        cspSection = next((x for x in sections if x.course_id == 23), None)
-        mysqlUpdates.assignCourseSectionToRoom(cspSection.id,cspSection.section_number, 5)
-
-    #all others
-    unfitSections = []
-    for section in sections:
-        if section.course_id != 23: #OMAHA ONLY: CSP case
-            course = queries.getCourseByID(section.course_id)
-            openRooms = list(findAvailableRooms(course.course_type, section))
-            openRoomsWithCapacity = dict()
-            for openRoomId in openRooms:
-                capacity = queries.getCapacityByRoomId(openRoomId)
-                openRoomsWithCapacity[str(openRoomId)] = capacity
-            openRoomsWithCapacity = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
-            assignedRoom = 0
-            for key, value in openRoomsWithCapacity:
-                if value >= section.students_enrolled:
-                    assignedRoom = int(key)
-                    break
-            if assignedRoom == 0:
-                unfitSections.append(section)
-            else: 
-                mysqlUpdates.assignCourseSectionToRoom(section.id, section.section_number, assignedRoom)
-    for section in unfitSections:
-        openRooms = list(set(queries.getAllRooms()) - set(queries.getRoomsBookedByPeriod(period)))
-        openRoomsWithCapacity = dict()
-        for openRoomId in openRooms:
-            capacity = queries.getCapacityByRoomId(openRoomId)
-            openRoomsWithCapacity[str(openRoomId)] = capacity
-        openRoomsWithCapacity = sorted(openRoomsWithCapacity.items(), key=lambda x: x[1])
-        assignedRoom = 0
-        for key, value in openRoomsWithCapacity:
-            if value >= section.students_enrolled:
-                assignedRoom = int(key)
-                break
-        if assignedRoom == 0:
-            print("needed capacity %s" %(section.students_enrolled))
-        else: 
-            mysqlUpdates.assignCourseSectionToRoom(section.id, section.section_number, assignedRoom)
-
-
-def addRoomsToFormattedOutput(course_section):
-    classObj = queries.getCourseByID(course_section.course_id)
-    #print(course_section.classroom_id)
-    room_name = "No room found"
-    if course_section.classroom_id != 0:
-        room_name = (queries.getRoomByID(course_section.classroom_id)).name
-    #print(room_name)
-    mysqlUpdates.addSchedulingToFormattedOutput(course_section.class_period, room_name, classObj.name, course_section.section_number)
-
-
 #determine if limited availability excludes randomly selected period
 def checkContainment(period, limits):
     for limit in limits:
@@ -191,19 +126,6 @@ def balancePeriods(periodsLeft):
     return True
 
 
-def findAvailableRooms(course_type, course_section):
-    types = course_type.split(',')
-    roomIds = []
-    for type_id in types:
-        roomIds = queries.getClassroomsByType(type_id)
-    bookedRooms = set(queries.getRoomsBookedByPeriod(course_section.class_period))
-    #print("roomsBooked %s" %(bookedRooms))
-    availableRooms = set(roomIds) - bookedRooms
-    #print("avialable %s" %(availableRooms))
-    return availableRooms
-
-
-
 def assignDuplicates():
     global conflicts
     duplicatesDealtWith = []
@@ -212,7 +134,7 @@ def assignDuplicates():
     duplicateContainerIds = []
     allDuplicates.sort(key=lambda x: x.number_of_sections)
     largestSectionNum = allDuplicates[len(allDuplicates)-1].number_of_sections
-    index = 0
+    #index = 0
     duplicatesGroups = [[] for _ in range(largestSectionNum+1)]
     print(duplicatesGroups)
 
@@ -222,18 +144,11 @@ def assignDuplicates():
         if dup.id in allContainers:
             duplicateContainerIds.append(dup.id)
 
-    print("ctoaniners")
-    print(allContainers)
-    print("duplicate containers")
-    print(duplicateContainerIds)
-
     #go through and enroll based on duplicates within group (most is first)
     for i in range (1, len(duplicatesGroups)):
         sectionBasis = [[] for _ in range(1, i+2)]
         sectionGroup = duplicatesGroups[i]
         sectionGroup.sort(key=lambda x: x.duplicates_num, reverse=True)
-        print("section basis length: %s" %(len(sectionBasis)))
-        print("section basis: %s" %(sectionBasis))
         for sectionGroupMember in sectionGroup:
             if sectionGroupMember.id in duplicatesDealtWith:
                 break
@@ -242,32 +157,30 @@ def assignDuplicates():
                 group.append(sectionGroupMember)
                 addThese = sectionGroupMember.duplicates.split(',')
                 for sectGM in addThese:
-                    addThis = queries.getCourseConflictsByCourse(sectGM)
-                    group.append(addThis)
-                print(group)
+                    group.append(queries.getCourseConflictsByCourse(sectGM))
+                #print(group)
                 groupContains = []
                 for groupie in group:
                     if groupie.id in duplicateContainerIds:
                         withinGroup = groupie.contained_within.split(',')
                         groupContains += withinGroup
                         groupContains = list(set(groupContains))
-                        print("within this: ")
-                        print(groupContains)
+                        # print("within this: ")
+                        # print(groupContains)
                 if len(groupContains) > 0: # fix this part later to check for greatest amount of conflicts
-                    print("has containees")
+                    #print("has containees")
                     sectionBase = queries.getCourseSectionsByCourseID(groupContains[0])
                     for i in range (len(sectionBase)):
                         sectionBasis[i+1] = queries.getStudentIDsEnrolledByCourseSection(sectionBase[i].id)
-                    print("section basis is %s" %(sectionBasis))
+                    #print("section basis is %s" %(sectionBasis))
                     enrollWithBasis(sectionBasis, group)
                 else: #just do it on random basis basically; later add in grouping of student conflicts
-                    print("no containees so")
+                    #print("no containees so")
                     enrollWithoutBasis(sectionBasis, group)
                 #dealt with all in group so 
                 for doneWith in group:
                     duplicatesDealtWith.append(doneWith.id)
 
-        print("oops")
     print("checking to see conflicts")
 
 
@@ -315,7 +228,6 @@ def enrollWithoutBasis(basis, courses):
                         mysqlUpdates.updateCourseEnrollment(student, courseSections[0].id, courseSections[i-1].id)
                         students_enrolled += 1
                 mysqlUpdates.updateCourseSectionEnrollment(courseSections[i-1].id, students_enrolled, 0)
-            
             formatThese = queries.getCourseSectionsByCourseID(course.id)
             for ft in formatThese:
                 enrollment.addSectionFormattedOutput(ft)
@@ -336,26 +248,13 @@ def getDuplicateRoster(duplicateSections):
                 for student in checkThis:
                     if student in allRosters[j]:
                         duplicateRoster.append(student)
-    # print("duplicate roster")
-    # print(set(duplicateRoster))
-    # print(len(set(duplicateRoster)))
     return set(duplicateRoster) # <-- set of all ids in multiple duplicates
 
 
 def splitStudents(basis, students):
     print("splitting students")
     students = shuffleArray(students, 5)
-    #realBasis = sectionBasis = [[] for _ in range(len(basis)-1)]
-    realBasis = []
-    for i in range(1, len(basis)):
-        #realBasis[i-1] = basis[i]
-        realBasis.append(basis[i])
     for i in range(len(students)):
-        realBasis[(i%(len(realBasis)))].append(students.pop(0))
-    print(realBasis)
-    for i in range(len(realBasis)):
-        basis[i+1] = realBasis[i]
-    print("faker")
-    print(basis)
+        basis[(i%(len(basis)-1))+1].append(students.pop(0))
     return basis
     
