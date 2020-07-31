@@ -1,7 +1,7 @@
 #responsbile for assigning class periods and classrooms
 
 import settings, inserts, queries, deletions, usefulFunctions 
-import enrollment, random, mysqlUpdates, enrollment, assignRooms
+import enrollment, random, mysqlUpdates, enrollment, assignRooms, enrollmentDuplicates
 from random import randint
 from usefulFunctions import convertToMinutes, shuffleArray
 
@@ -16,12 +16,15 @@ def init():
     global periods, limitedMentors #, conflicts 
     periods = queries.getAllPeriodTimeBlocks()
     limitedMentors = queries.getMentorIDsWithLimitedAvailability()
-    #conflicts = enrollment.conflictDict
+    conflicts = dict.fromkeys(list(range(1, settings.maxClassSize+1))) #keep track of all differences
     print("init scheduling")
     remainingCourseSections = []
 
     assignDuplicates()
 
+    #allCourseSections = queries.getAllCourseSections()
+
+    print("assigning limited availability first")
     #assign limited availability mentors first 
     for course_section in enrollment.allCourseSections:
         mentor_id = queries.getMentorIDByCourseSection(course_section.id)
@@ -172,7 +175,7 @@ def assignDuplicates():
                     sectionBase = queries.getCourseSectionsByCourseID(groupContains[0])
                     for i in range (len(sectionBase)):
                         sectionBasis[i+1] = queries.getStudentIDsEnrolledByCourseSection(sectionBase[i].id)
-                    #print("section basis is %s" %(sectionBasis))
+                    print("section basis is %s" %(sectionBasis))
                     enrollWithBasis(sectionBasis, group)
                 else: #just do it on random basis basically; later add in grouping of student conflicts
                     #print("no containees so")
@@ -188,32 +191,46 @@ def enrollWithBasis(basis, courses):
     allSections = []
     for course in courses:
         courseSections = queries.getCourseSectionsByCourseID(course.id)
+        print(len(queries.getStudentIDsEnrolledByCourseSection(courseSections[0].id)))
         allSections += courseSections
-    sharedStudents = list(getDuplicateRoster(allSections))
+    sharedStudents = getDuplicateRoster(allSections)
+    print("shared")
+    print(sharedStudents)
+
+    #get students already enrolled
+    basedStudents = []
+    for base in basis:
+        basedStudents += base
+    
+    print("based")
+    print(basedStudents)
+    
+    unassignedStudents = sharedStudents - set(basedStudents)
+    unassignedStudents = list(unassignedStudents)
+
+    print("unassigned")
+    print(unassignedStudents)
+
+    sectionNum = len(basis)-1
+
     
     
     print("has a bsis")
 
 def enrollWithoutBasis(basis, courses):
-    if len(basis) == 2: #single section courses, just enroll normally
-        print("single section based")
-        for course in courses:
-            courseSections = queries.getCourseSectionsByCourseID(course.id)
-            #FIND PERIODS FOR THIS BABY
-            enrollment.addSectionFormattedOutput(courseSections[0])
-    else:
+    if len(basis) > 2:
         allSections = []
         for course in courses:
             courseSections = queries.getCourseSectionsByCourseID(course.id)
             allSections += courseSections
         sharedStudents = getDuplicateRoster(allSections)
-        print("sharedStudents: %s" %(sharedStudents))
+        #print("sharedStudents: %s" %(sharedStudents))
         sharedSections = splitStudents(basis, list(sharedStudents))
         for course in courses: 
             courseSections = queries.getCourseSectionsByCourseID(course.id)
-            print("courseSections: %s" %(courseSections))
+            #print("courseSections: %s" %(courseSections))
             courseSpecificStudents = queries.getStudentIDsEnrolledByCourseSection(courseSections[0].id)
-            print("course specific students %s" %(courseSpecificStudents))
+            #print("course specific students %s" %(courseSpecificStudents))
             unassignedStudents = set(courseSpecificStudents) - sharedStudents
             unassignedStudents = list(unassignedStudents)
             if len(unassignedStudents) > 0:

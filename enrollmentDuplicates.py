@@ -3,14 +3,15 @@
 import queries, inserts, settings, deletions, mysqlUpdates, usefulFunctions, scheduling, enrollment
 from random import shuffle
 from usefulFunctions import shuffleArray
-from scheduling import groupAvailability
 
-global courseSectionId
+
+global courseSectionId, conflictDict
 duplicates = ""
 duplicates_num = 0
 courseSectionId = 0
 allCourseSections = []
 coreCoursesIds = []
+conflictDict = dict()
 
 #init 
 def init():
@@ -23,7 +24,7 @@ def init():
 
 #get conflicts for scheduling
 def getConflicts():
-    global duplicates, duplicates_num
+    global duplicates, duplicates_num, conflictDict
     courses = enrollment.courses
     for i in range(len(courses)):
         course = courses[i]
@@ -31,6 +32,7 @@ def getConflicts():
         duplicates = course_conflict.duplicates
         duplicates_num = course_conflict.duplicates_num
         number_of_sections = len(queries.getCourseSectionsByCourseID(course.id))
+        conflictsDict = dict()
         for j in range(i+1, len(courses)): #fix this part !!!!!
             if j < len(courses):
                 otherCourse = courses[j]
@@ -62,7 +64,10 @@ def getConflicts():
                         else:
                             # print("THE OTHER %s CONTAINS %s " %(otherCourse.id, course.id))
                             updateContainedDuplicates(otherCourse.id, course.id)
+                if conflicts != 0:
+                    conflictsDict[str(otherCourse.id)] = conflictNum
         mysqlUpdates.setDuplicates(duplicates, duplicates_num, course.id, number_of_sections)
+        conflictDict[str(course.id)] = conflictsDict
 
 
 def updateEqualDuplicates(courseId, newDuplicates, updateId):

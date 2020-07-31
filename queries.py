@@ -417,6 +417,14 @@ def getAllNonzeroDuplicates():
         obj.append(CourseConflict(id, dupes, dupeNum, contains, sectNum))
     return obj
 
+def getAllNonzeroDuplicateIds():
+    query = ("SELECT * FROM course_conflicts WHERE duplicates_num > 0")
+    cursor = runMySQLOperation(query)
+    ids = []
+    for (id, dupes, dupeNum, contains, sectNum) in cursor:
+        ids.append(id)
+    return ids
+
 def getAllNonzeroContainerIds():
     query = ("SELECT * FROM course_conflicts WHERE contained_within is not NULL")
     cursor = runMySQLOperation(query)

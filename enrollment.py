@@ -5,12 +5,13 @@ from random import shuffle
 from usefulFunctions import shuffleArray
 from scheduling import groupAvailability
 
-global allCourseSections, courseSectionId #, conflictDict, duplicates_num
+global allCourseSections, courseSectionId, singleSections #, conflictDict, duplicates_num
 # duplicates = ""
 # duplicates_num = 0
 allCourseSections = None
 courses = []
 courseSectionId = 0 
+singleSections = []
 
 #init 
 def init(studentList):
@@ -62,6 +63,7 @@ def balanceSections():
             splitSection(section, section.course_id)
         else:
             mysqlUpdates.updateCourseSectionEnrollment(section.id, section.students_enrolled, 0)
+            singleSections.append(section)
 
 def addSectionFormattedOutput(section):
     course = queries.getCourseByID(section.course_id)
