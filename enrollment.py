@@ -20,7 +20,6 @@ def init(studentList):
     for course in allCourses:
         if (queries.getStudentCoursePreferencesByCourseID(course.id)):
             courses.append(course)
-            print(course.id)
     for i in range(settings.periods):
         for student in studentList:
             findCourseSection(student)
@@ -105,6 +104,7 @@ def splitSection(section, courseId):
 #assign mentors to course sections
 def matchMentors():
     print("matching mentors with qualified courses")
+    allCourseSections = queries.getAllCourseSections()
     for section in allCourseSections:
         mentors = queries.getQualificationByID(section.course_id)
         course = queries.getCourseByID(section.course_id)

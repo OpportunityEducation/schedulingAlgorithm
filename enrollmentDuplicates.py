@@ -50,17 +50,17 @@ def getConflicts():
                         courseSectionNum = len(courseSection)
                         otherSectionNum = len(otherSection)
                         if courseSectionNum == otherSectionNum:
-                            print("%s and %s are DUPLICATES of equal size" %(course.name, otherCourse.name))
+                            # print("%s and %s are DUPLICATES of equal size" %(course.name, otherCourse.name))
                             duplicates = updateEqualDuplicates(otherCourse.id, duplicates, -1)
                             otherCourseConflicts = queries.getCourseConflictsByCourse(otherCourse.id)
                             updateEqualDuplicates(course.id, otherCourseConflicts.duplicates, otherCourse.id)
                             duplicates_num += 1
                             conflictNum = conflicts
                         elif courseSectionNum > otherSectionNum:
-                            print("THE COURSE %s CONTAINS %s " %(course.id, otherCourse.id))
+                            # print("THE COURSE %s CONTAINS %s " %(course.id, otherCourse.id))
                             updateContainedDuplicates(course.id, otherCourse.id)
                         else:
-                            print("THE OTHER %s CONTAINS %s " %(otherCourse.id, course.id))
+                            # print("THE OTHER %s CONTAINS %s " %(otherCourse.id, course.id))
                             updateContainedDuplicates(otherCourse.id, course.id)
         mysqlUpdates.setDuplicates(duplicates, duplicates_num, course.id, number_of_sections)
 

@@ -278,6 +278,7 @@ def enrollWithBasis(basis, courses):
         allSections += courseSections
     sharedStudents = list(getDuplicateRoster(allSections))
     
+    
     print("has a bsis")
 
 def enrollWithoutBasis(basis, courses):
@@ -285,30 +286,39 @@ def enrollWithoutBasis(basis, courses):
         print("single section based")
         for course in courses:
             courseSections = queries.getCourseSectionsByCourseID(course.id)
-            enrollment.addSectionFormattedOutput(courseSections[0])
             #FIND PERIODS FOR THIS BABY
+            enrollment.addSectionFormattedOutput(courseSections[0])
     else:
         allSections = []
         for course in courses:
             courseSections = queries.getCourseSectionsByCourseID(course.id)
             allSections += courseSections
-        sharedStudents = list(getDuplicateRoster(allSections))
+        sharedStudents = getDuplicateRoster(allSections)
         print("sharedStudents: %s" %(sharedStudents))
-        sharedSections = splitStudents(basis, sharedStudents)
+        sharedSections = splitStudents(basis, list(sharedStudents))
         for course in courses: 
-            unassignedStudents = []
             courseSections = queries.getCourseSectionsByCourseID(course.id)
-            courseSpecificStudentLists = queries.getStudentIDsEnrolledByCourseSection(courseSections[0].id)
-            courseSpecificStudents = []
-            for csl in courseSpecificStudentLists:
-                courseSpecificStudents += csl
-                courseSpecificStudents = list(set(courseSpecificStudents))
-            for student in courseSpecificStudents:
-                if student not in sharedStudents:
-                    unassignedStudents.append(student)
-            print("unassigned students: %s" %(unassignedStudents))
-            courseSpecificSections = splitStudents(sharedSections, unassignedStudents)
-            print("course specifc sections: %s" %(courseSpecificSections))
+            print("courseSections: %s" %(courseSections))
+            courseSpecificStudents = queries.getStudentIDsEnrolledByCourseSection(courseSections[0].id)
+            print("course specific students %s" %(courseSpecificStudents))
+            unassignedStudents = set(courseSpecificStudents) - sharedStudents
+            unassignedStudents = list(unassignedStudents)
+            if len(unassignedStudents) > 0:
+                courseSpecificSections = splitStudents(sharedSections, unassignedStudents)
+            else:
+                courseSpecificSections = sharedSections
+            for i in range (1, len(courseSpecificSections)):
+                css = courseSpecificSections[i]
+                students_enrolled = 0
+                for student in css:
+                    if student in courseSpecificStudents:
+                        mysqlUpdates.updateCourseEnrollment(student, courseSections[0].id, courseSections[i-1].id)
+                        students_enrolled += 1
+                mysqlUpdates.updateCourseSectionEnrollment(courseSections[i-1].id, students_enrolled, 0)
+            
+            formatThese = queries.getCourseSectionsByCourseID(course.id)
+            for ft in formatThese:
+                enrollment.addSectionFormattedOutput(ft)
         #then just assign randomly **** TO DO: BASE ASSIGNEMNT ON STUDENT AVAILABILITY****
         print("has no basis")
 
@@ -326,17 +336,26 @@ def getDuplicateRoster(duplicateSections):
                 for student in checkThis:
                     if student in allRosters[j]:
                         duplicateRoster.append(student)
-    print("duplicate roster")
-    print(set(duplicateRoster))
-    print(len(set(duplicateRoster)))
+    # print("duplicate roster")
+    # print(set(duplicateRoster))
+    # print(len(set(duplicateRoster)))
     return set(duplicateRoster) # <-- set of all ids in multiple duplicates
 
 
 def splitStudents(basis, students):
     print("splitting students")
     students = shuffleArray(students, 5)
+    #realBasis = sectionBasis = [[] for _ in range(len(basis)-1)]
+    realBasis = []
+    for i in range(1, len(basis)):
+        #realBasis[i-1] = basis[i]
+        realBasis.append(basis[i])
     for i in range(len(students)):
-        basis[(i%(len(basis)-1))+1].append(students.pop(0))
+        realBasis[(i%(len(realBasis)))].append(students.pop(0))
+    print(realBasis)
+    for i in range(len(realBasis)):
+        basis[i+1] = realBasis[i]
+    print("faker")
     print(basis)
     return basis
     
