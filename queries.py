@@ -12,8 +12,10 @@ from usefulFunctions import runMySQLOperation
 def getAllStudents():
     query = ("SELECT * FROM student")
     cursor = runMySQLOperation(query)
+    students = []
     for (id, name, gender, year, free_periods) in cursor:
-        print("{} is {}".format(id, name))
+        students.append(Student(id, name, gender, year, free_periods))
+    return students
 
 def getStudentsByGrade(grade):
     query = ("SELECT * FROM student WHERE year=%s" %(grade))
@@ -51,6 +53,22 @@ def getStudentsEnrolledByCourseName(name):
     for (name, year, gender, class_name, mentor, section_number, period, classroom) in cursor:
         names.append(name)
     return names
+
+def getStudentNamesEnrolledByCourseNameAndSectionNumber(name, sectNum):
+    query = ("SELECT * from formatted_output WHERE class_name='%s' AND section_number=%s" %(name, sectNum))
+    cursor = runMySQLOperation(query)
+    names = []
+    for (name, year, gender, class_name, mentor, section_number, period, classroom) in cursor:
+        names.append(name)
+    return names
+
+def getStudentEnrollmentFromFormattedOutput(name):
+    query = ("SELECT * from formatted_output WHERE name='%s' AND period != 0" %(name))
+    cursor = runMySQLOperation(query)
+    periods = []
+    for (name, year, gender, class_name, mentor, section_number, period, classroom) in cursor:
+        periods.append(period)
+    return periods
 
 
 # DAYS
@@ -183,13 +201,21 @@ def getCourseSectionsByPeriod(i):
         allSections.append(CourseSection(id, course_id, section_number, classroom_id, class_period, students_enrolled, males_enrolled))
     return allSections
 
+def getCourseSectionIdsByPeriod(i):
+    query = ("SELECT * from course_section WHERE class_period=%s" %(i))
+    cursor = runMySQLOperation(query)
+    ids = []
+    for (id, course_id, section_number, classroom_id, class_period, students_enrolled, males_enrolled) in cursor:
+        ids.append(id)
+    return ids
+
 
 # COURSE ENROLLMENT
 def getStudentEnrollmentByStudentID(id):
     query = ("SELECT * FROM course_enrollment WHERE is_mentor=0 AND user_id=%s" %(id))
     cursor = runMySQLOperation(query)
     enrolledCourses = []
-    for (course_section_id, is_mentor, user_id) in cursor:
+    for (user_id, course_section_id, is_mentor) in cursor:
         enrolledCourses.append(EnrolledCourse(course_section_id, user_id))
     return enrolledCourses
 

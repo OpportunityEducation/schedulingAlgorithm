@@ -21,8 +21,8 @@ def init():
     print("init scheduling")
     assignDuplicates()
 
-    for cs in queries.getAllCourseSections():
-        enrollment.addSectionFormattedOutput(cs)
+    # for cs in queries.getAllCourseSections():
+    #     enrollment.addSectionFormattedOutput(cs)
 
     assignPeriods.init()
     assignRooms.init()
@@ -182,10 +182,13 @@ def enrollWithBasis(basis, courses):
 
     print("shared sections")
     print(realBasis)
-
+    #[[], [66, 70, 75, 79, 80, 81, 82, 83, 84, 85, 86], [72, 73, 76, 77, 78, 87, 89], 
+    # [67, 57, 58, 60, 61, 62, 65, 59, 63, 64, 68, 69, 71], [67, 57, 58, 60, 61, 62, 65, 59, 63, 64, 68, 69, 71]]
     sharedSections = realBasis
     for course in courses: 
         courseSections = queries.getCourseSectionsByCourseID(course.id)
+        print("course sections" )
+        print(courseSections)
         #print("courseSections: %s" %(courseSections))
         courseSpecificStudents = queries.getStudentIDsEnrolledByCourseSection(courseSections[0].id)
         #print("course specific students %s" %(courseSpecificStudents))
@@ -197,9 +200,12 @@ def enrollWithBasis(basis, courses):
             courseSpecificSections = sharedSections
         for i in range (1, len(courseSpecificSections)):
             css = courseSpecificSections[i]
+            print("course specific sections")
+            print(css)
             students_enrolled = 0
             for student in css:
                 if student in courseSpecificStudents:
+                    # updateCourseEnrollment(user_id, course_section_id, new_course_section):
                     mysqlUpdates.updateCourseEnrollment(student, courseSections[0].id, courseSections[i-1].id)
                     students_enrolled += 1
             mysqlUpdates.updateCourseSectionEnrollment(courseSections[i-1].id, students_enrolled, 0)
@@ -211,6 +217,7 @@ def enrollWithBasis(basis, courses):
 
 
 def enrollWithoutBasis(basis, courses):
+    print("ENROLL WITH NO BASIS")
     if len(basis) > 2:
         allSections = []
         for course in courses:

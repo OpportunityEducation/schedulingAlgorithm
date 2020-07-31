@@ -104,3 +104,12 @@ class CourseConflict:
         self.duplicates_num = duplicates_num
         self.contained_within = contained_within
         self.number_of_sections = number_of_sections
+
+
+# class FormattedOutput:
+#     def __init__(self, id, duplicates, duplicates_num, contained_within, number_of_sections):
+#         self.id = id
+#         self.duplicates = duplicates
+#         self.duplicates_num = duplicates_num
+#         self.contained_within = contained_within
+#         self.number_of_sections = number_of_sections

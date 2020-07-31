@@ -17,9 +17,18 @@ def getMentorStats():
 
 
 def getStudentConflicts():
-    print("periods where student course choice conflicts")
-    for i in range(1, settings.periods+1):
-        roster = []
-        sections = queries.getCourseSectionsByPeriod(i)
-        roster = queries.getStudentIDsEnrolledByCourseSection
+    students = queries.getAllStudents()
+    studentConfs = 0
+    for student in students:
+        enrolledCourses = queries.getStudentEnrollmentByStudentID(student.id)
+        periodsEnrolled= []
+        for courseSection in enrolledCourses:
+            p = queries.getCourseSectionByID(courseSection.id).class_period
+            if p != 0:
+                periodsEnrolled.append(queries.getCourseSectionByID(courseSection.id).class_period)
+        if len(periodsEnrolled) != len(set(periodsEnrolled)):
+            print(student.name)
+            print(periodsEnrolled)
+            studentConfs += 1
+    print("Total conflicts: %s" %(studentConfs))
 

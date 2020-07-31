@@ -52,3 +52,6 @@ print("scheduling complete")
 
 # #run success metrics
 
+
+successMetrics.getStudentConflicts()
+

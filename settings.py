@@ -8,7 +8,7 @@ def init():
     global minClassSize
     minClassSize = 12
     global maxClassSize
-    maxClassSize = 16
+    maxClassSize = 17
     global maxDuplicateClassSize
     maxDuplicateClassSize = 14
     global periods
