@@ -48,13 +48,13 @@ class CourseSection:
         self.males_enrolled = males_enrolled
 
 class UnformattedPreference:
-    def __init__(self, student_id, student_name, gender, grade, free_periods, req_1, req_2, req_3, req_4, req_5, req_6):
+    def __init__(self, student_id, student_name, gender, grade, free_periods, req_1, req_2, req_3, req_4, req_5, req_6, req_7, req_8):
         self.student_id = student_id
         self.student_name = student_name
         self.gender = gender
         self.grade = grade
         self.free_periods = free_periods
-        self.reqs = [req_1, req_2, req_3, req_4, req_5, req_6]
+        self.reqs = [req_1, req_2, req_3, req_4, req_5, req_6, req_7, req_8]
 
 class UnformattedQualification:
     def __init__(self, mentor_id, mentor_name, planning_periods, c1, c2, c3, c4, c5, c6, c7):

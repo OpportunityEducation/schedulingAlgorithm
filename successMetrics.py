@@ -1,6 +1,6 @@
 #calculates success rate of program based on various stats
 
-import settings, queries
+import settings, queries, mysqlUpdates, deletions
 
 def init():
     print('initializing success metrics')
@@ -31,4 +31,13 @@ def getStudentConflicts():
             print(periodsEnrolled)
             studentConfs += 1
     print("Total conflicts: %s" %(studentConfs))
+
+    bestRun = queries.getBestRunNum()
+
+    if studentConfs < bestRun:
+        print("updating best, former: %s and new: %s" %(bestRun, studentConfs))
+        deletions.truncateTable("best")
+        mysqlUpdates.updateBestRun(studentConfs)
+        deletions.truncateTable("kept_run")
+        mysqlUpdates.updateKeptRun()
 

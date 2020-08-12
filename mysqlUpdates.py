@@ -62,3 +62,13 @@ def incrementDuplicateNum(courseId):
 def updateContained(contains, id):
     query = ("UPDATE course_conflicts SET contained_within='%s' WHERE id=%s" %(contains, id))
     cursor = runMySQLOperation(query)
+
+
+# KEPT RUN
+def updateKeptRun():
+    query = ("INSERT INTO kept_run (name, year, gender, class_name, mentor, section_number, period, classroom) SELECT * FROM formatted_output")
+    cursor = runMySQLOperation(query)
+
+def updateBestRun(newRun):
+    query = ("INSERT INTO best (conflicts) VALUES (%s)" %(newRun))
+    cursor = runMySQLOperation(query)

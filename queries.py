@@ -253,8 +253,8 @@ def getAllUnformattedPreferences():
     query = ("SELECT * FROM unformatted_preferences")
     cursor = runMySQLOperation(query)
     preferences = []
-    for (student_id, student_name, gender, grade, free_periods, req_1, req_2, req_3, req_4, req_5, req_6) in cursor:
-        preferences.append(UnformattedPreference(student_id, student_name, gender, grade, free_periods, req_1, req_2, req_3, req_4, req_5, req_6))
+    for (student_id, student_name, gender, grade, free_periods, req_1, req_2, req_3, req_4, req_5, req_6, req_7, req_8) in cursor:
+        preferences.append(UnformattedPreference(student_id, student_name, gender, grade, free_periods, req_1, req_2, req_3, req_4, req_5, req_6, req_7, req_8))
     return preferences
 
 
@@ -459,3 +459,13 @@ def getAllNonzeroContainerIds():
         ids.append(id)
     return ids
     
+
+
+# SUCCESS METRICS
+def getBestRunNum():
+    query = ("SELECT * FROM best")
+    cursor = runMySQLOperation(query)
+    for num in cursor:
+        n = int(num[0])
+        print(n)
+        return n

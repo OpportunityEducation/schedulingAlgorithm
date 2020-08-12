@@ -108,6 +108,9 @@ def assignDuplicates():
     print("checking to see conflicts")
 
 
+# this logic needs to be fixed for all data
+# commented out parts work for certain classes but not others
+# meaning generalization is needed
 def enrollWithBasis(basis, courses):
     allSections = []
     for course in courses:
@@ -157,28 +160,31 @@ def enrollWithBasis(basis, courses):
     #     print(realBasis)
 
     # unbased.remove([])
-    realBasis = [[]]
-    for i in range(len(basis)):
-        if basis[i] != []:
-            realBasis.append(basis[i])
+    # realBasis = [[]]
+    # for i in range(len(basis)):
+    #     if basis[i] != []:
+    #         realBasis.append(basis[i])
 
-    print("basis edited")
-    print(realBasis)
+    # print("basis edited")
+    # print(realBasis)
 
-    realBasis += unbased
-    print("new basis")
-    print(realBasis)
+    # realBasis += unbased
+    # print("new basis")
+    # print(realBasis)
 
-    pt1 = realBasis[1]
-    print(pt1)
-    newRealBasis = []
-    for i in range(5):
-        # ap = pt1[i]
-        realBasis[3].append(realBasis[1].pop(0))
-    pt2 = realBasis[2]
-    for i in range(6):
-        # ap = pt2[i]
-        realBasis[3].append(realBasis[2].pop(0))
+    # pt1 = realBasis[1]
+    # print(pt1)
+    # newRealBasis = []
+    # print("real basis")
+    # print(realBasis)
+    # for i in range(len(realBasis[1])): #5
+    #     # ap = pt1[i]
+    #     if i < len(pt1)/2:
+    #         realBasis[3].append(realBasis[1].pop(0))
+    # pt2 = realBasis[2]
+    # for i in range(6): #6
+    #     # ap = pt2[i]
+    #     realBasis[3].append(realBasis[2].pop(0))
 
     print("shared sections")
     print(realBasis)

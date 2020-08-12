@@ -9,9 +9,7 @@ def init():
     minClassSize = 12
     global maxClassSize
     maxClassSize = 17
-    global maxDuplicateClassSize
-    maxDuplicateClassSize = 14
     global periods
-    periods = 6
+    periods = 8 #omaha 6, santa rosa 8
     # global typenum
     # typenum = queries.getNumberOfCourseTypes()

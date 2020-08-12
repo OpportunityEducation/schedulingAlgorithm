@@ -1,4 +1,4 @@
-#responsbile for assigning class periods and classrooms
+#responsbile for assigning classrooms
 
 import settings, inserts, queries, deletions, usefulFunctions, enrollment, random, mysqlUpdates, enrollment
 from random import randint

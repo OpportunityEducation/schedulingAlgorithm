@@ -1,4 +1,5 @@
-#responsible for class assignemnts
+#responsible for identifying classes that have 90% or more of same roster so that their rosters match up
+# thus allowing for lesser conflicts 
 
 import queries, inserts, settings, deletions, mysqlUpdates, usefulFunctions, scheduling, enrollment
 from random import shuffle
@@ -54,7 +55,9 @@ def getConflicts():
                         if courseSectionNum == otherSectionNum:
                             # print("%s and %s are DUPLICATES of equal size" %(course.name, otherCourse.name))
                             duplicates = updateEqualDuplicates(otherCourse.id, duplicates, -1)
+                            print("other course is: %s" %(otherCourse.id))
                             otherCourseConflicts = queries.getCourseConflictsByCourse(otherCourse.id)
+                            print("other course conflicts are s: %s" %(otherCourseConflicts))
                             updateEqualDuplicates(course.id, otherCourseConflicts.duplicates, otherCourse.id)
                             duplicates_num += 1
                             conflictNum = conflicts
